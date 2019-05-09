@@ -211,7 +211,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void OntModelSubclassList(OntModel omod,PrintWriter fout_writer,int verbose)
+  public static void OntModelSubclassList(OntModel omod, PrintWriter fout_writer, int verbose)
   {
     ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
     int i_cls=0;
@@ -245,9 +245,8 @@ public class jena_utils
 
   /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology class hierarchy to TSV.
-	node_or_edge, id, label, comment, source, target, uri
   */
-  public static void OntModel2TSV(OntModel omod,PrintWriter fout_writer,int verbose)
+  public static void OntModel2TSV(OntModel omod, PrintWriter fout_writer, int verbose)
         throws Exception
   {
     fout_writer.write("node_or_edge\tid\tlabel\tcomment\tsource\ttarget\turi\n");
@@ -286,7 +285,8 @@ public class jena_utils
         String uri_sub=subcls.getURI(); //target
         if (uri_sub==null) continue; //error
         String id_sub=uri_sub.replaceFirst("^.*/","");
-        fout_writer.write(String.format("edge\t\t\thas_subclass\t%s\t%s\t\n", id, id_sub)); 
+        String label="has_subclass";
+        fout_writer.write(String.format("edge\t\t%s\t\t%s\t%s\t\n", label, id, id_sub)); 
         ++i_subcls;
       }
     }
@@ -297,7 +297,7 @@ public class jena_utils
   /**	Converts ontology class hierarchy to a Cytoscape JS format directed
 	graph for processing and viewing.  Use Jackson-databind library.
   */
-  public static void OntModel2CYJS(OntModel omod,PrintWriter fout_writer,int verbose)
+  public static void OntModel2CYJS(OntModel omod, PrintWriter fout_writer, int verbose)
         throws Exception
   {
     ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
@@ -465,7 +465,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void ValidateModel(Model mod,Reasoner reasoner)
+  public static void ValidateModel(Model mod, Reasoner reasoner)
   {
     if (reasoner==null)
     {
@@ -488,7 +488,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void QueryRDF(Dataset dset,String rq,PrintWriter fout_writer,int verbose)
+  public static void QueryRDF(Dataset dset, String rq, PrintWriter fout_writer, int verbose)
   {
     Query query = QueryFactory.create(rq);
     QueryExecution qe = QueryExecutionFactory.create(query, dset);
@@ -500,7 +500,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void QueryEndpoint(String url,String rq,PrintWriter fout_writer,int verbose)
+  public static void QueryEndpoint(String url, String rq, PrintWriter fout_writer, int verbose)
   {
     Query query = QueryFactory.create(rq);
     QueryEngineHTTP qe = new QueryEngineHTTP(url,query);
@@ -512,7 +512,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void InferAllStatements(Model mod,Reasoner reasoner,PrintWriter fout_writer,int verbose)
+  public static void InferAllStatements(Model mod, Reasoner reasoner, PrintWriter fout_writer, int verbose)
   {
     InfModel infmod = ModelFactory.createInfModel(reasoner, mod);
     //Resource A = infmod.getResource("http://foo#bar"); //DEBUG
