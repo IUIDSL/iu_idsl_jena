@@ -243,7 +243,56 @@ public class jena_utils
     System.err.println("classes: "+i_cls+", subclasses: "+i_subcls);
   }
 
-      
+  /////////////////////////////////////////////////////////////////////////////
+  /**	Converts ontology class hierarchy to TSV.
+	node_or_edge, id, label, comment, source, target, uri
+  */
+  public static void OntModel2TSV(OntModel omod,PrintWriter fout_writer,int verbose)
+        throws Exception
+  {
+    fout_writer.write("node_or_edge\tid\tlabel\tcomment\tsource\ttarget\turi\n");
+    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    int i_cls=0;
+    int i_subcls=0;
+    while (cls_itr.hasNext())
+    {
+      OntClass cls = cls_itr.next();
+      String uri=cls.getURI();
+      if (uri==null) continue; //error
+      String id=uri.replaceFirst("^.*/","");
+      String label=cls.getLabel(null);
+      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
+      label=(label!=null)?label.replaceAll("&","&amp;"):"";
+      label=(label!=null)?label.replaceAll("<","&lt;"):"";
+      label=(label!=null)?label.replaceAll(">","&gt;"):"";
+      String comment=cls.getComment(null);
+      comment=(comment!=null)?comment.replaceAll("&","&amp;"):"";
+      comment=(comment!=null)?comment.replaceAll("<","&lt;"):"";
+      comment=(comment!=null)?comment.replaceAll(">","&gt;"):"";
+      fout_writer.write(String.format("node\t%s\t%s\t%s\t\t\t%s\n", id, label, comment, uri)); 
+      ++i_cls;
+    }
+    cls_itr = omod.listNamedClasses(); //rewind for subclasses/edges
+    while (cls_itr.hasNext())
+    {
+      ++i_cls;
+      OntClass cls = cls_itr.next();
+      String uri=cls.getURI();
+      String id=uri.replaceFirst("^.*/",""); //source
+      ExtendedIterator<OntClass> subcls_itr = cls.listSubClasses();
+      while (subcls_itr.hasNext())
+      {
+        OntClass subcls = subcls_itr.next();
+        String uri_sub=subcls.getURI(); //target
+        if (uri_sub==null) continue; //error
+        String id_sub=uri_sub.replaceFirst("^.*/","");
+        fout_writer.write(String.format("edge\t\t\thas_subclass\t%s\t%s\t\n", id, id_sub)); 
+        ++i_subcls;
+      }
+    }
+    System.err.println("nodes (classes): "+i_cls+", edges (subclasses): "+i_subcls);
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology class hierarchy to a Cytoscape JS format directed
 	graph for processing and viewing.  Use Jackson-databind library.
@@ -490,6 +539,7 @@ public class jena_utils
   private static Boolean list_rootclasses=false;
   private static Boolean ont2graphml=false;
   private static Boolean ont2cyjs=false;
+  private static Boolean ont2tsv=false;
   private static Boolean list_classes=false;
   private static String otype="OWL";
   private static Boolean validate_rdf=false;
@@ -564,6 +614,7 @@ public class jena_utils
       else if (args[i].equals("-list_rootclasses")) list_rootclasses=true;
       else if (args[i].equals("-ont2graphml")) ont2graphml=true;
       else if (args[i].equals("-ont2cyjs")) ont2cyjs=true;
+      else if (args[i].equals("-ont2tsv")) ont2tsv=true;
       else if (args[i].equals("-ontology_type")) otype=args[++i];
       else if (args[i].equals("-validate_rdf")) validate_rdf=true;
       else if (args[i].equals("-validate_ont")) validate_ont=true;
@@ -696,6 +747,10 @@ public class jena_utils
     else if (ont2cyjs) {
       if (omod==null) Help("-ontfile required");
       OntModel2CYJS(omod,fout_writer,verbose);
+    }
+    else if (ont2tsv) {
+      if (omod==null) Help("-ontfile required");
+      OntModel2TSV(omod,fout_writer,verbose);
     }
     else if (query_rdf) {
       if (dset==null) Help("-rdffiles required");
