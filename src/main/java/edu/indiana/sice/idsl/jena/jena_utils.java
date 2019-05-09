@@ -1,6 +1,7 @@
 package edu.indiana.sice.idsl.jena;
 
 import java.io.*;
+import java.nio.file.*; //Files, Path
 import java.util.*;
 import java.util.regex.*;
 import java.net.*; //URL
@@ -19,9 +20,8 @@ import com.hp.hpl.jena.sparql.core.*; //Prologue
 
 import com.fasterxml.jackson.core.*; //JsonFactory, JsonGenerator
 import com.fasterxml.jackson.databind.*; //ObjectMapper, JsonNode
-//import com.fasterxml.jackson.databind.util.*;
 
-import org.apache.jena.atlas.logging.*; //LogCtl
+import org.apache.jena.atlas.logging.LogCtl;
 
 /**	Static utility methods for Jena.
 	@author Jeremy Yang
@@ -587,12 +587,16 @@ public class jena_utils
   {
     ParseCommand(args);
 
-    String jenapropfile = (System.getProperty("os.name","").toLowerCase().indexOf("mac")>=0) ?
-      "/Users/app/apache-jena/jena-log4j.properties"
-      : "/home/app/apache-jena/jena-log4j.properties" ;
-    if (verbose>1)
-      System.err.println("jenapropfile: "+jenapropfile);
-    LogCtl.setLog4j(jenapropfile);
+    //String jenapropfile = null;
+    if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
+      LogCtl.setLog4j("src/main/resources/jena-log4j.properties");
+    else if (Files.isReadable(FileSystems.getDefault().getPath("/home/app/apache-jena", "jena-log4j.properties")))
+      LogCtl.setLog4j("/home/app/apache-jena/jena-log4j.properties");
+    else
+      LogCtl.setLog4j();
+
+    //if (verbose>1) System.err.println("jenapropfile: "+jenapropfile);
+    //LogCtl.setLog4j(jenapropfile);
 
     PrintWriter fout_writer = (ofile!=null) ?
       new PrintWriter(new BufferedWriter(new FileWriter(new File(ofile),false)))
