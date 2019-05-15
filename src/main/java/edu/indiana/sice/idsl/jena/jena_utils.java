@@ -277,16 +277,14 @@ public class jena_utils
       ++i_cls;
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
-      String id=uri.replaceFirst("^.*/",""); //source
       ExtendedIterator<OntClass> subcls_itr = cls.listSubClasses();
       while (subcls_itr.hasNext())
       {
         OntClass subcls = subcls_itr.next();
         String uri_sub=subcls.getURI(); //target
         if (uri_sub==null) continue; //error
-        String id_sub=uri_sub.replaceFirst("^.*/","");
         String label="has_subclass";
-        fout_writer.write(String.format("edge\t\t%s\t\t%s\t%s\t\n", label, id, id_sub)); 
+        fout_writer.write(String.format("edge\t\t%s\t\t%s\t%s\t\n", label, uri, uri_sub)); 
         ++i_subcls;
       }
     }
