@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.regex.*;
 import java.net.*; //URL
 
-import com.hp.hpl.jena.ontology.*;
+import com.hp.hpl.jena.ontology.*; //OntModel
 import com.hp.hpl.jena.rdf.model.*;
 import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.util.iterator.*; //ExtendedIterator
@@ -153,7 +153,7 @@ public class jena_utils
     System.err.println("imported:");
     for (String uri: omod.listImportedOntologyURIs())
       System.err.println("\t"+uri);
-    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
     while (cls_itr.hasNext())
     {
@@ -169,7 +169,7 @@ public class jena_utils
   /////////////////////////////////////////////////////////////////////////////
   public static void OntModelClassList(OntModel omod,PrintWriter fout_writer,int verbose)
   {
-    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
     while (cls_itr.hasNext())
     {
@@ -194,7 +194,7 @@ public class jena_utils
   /////////////////////////////////////////////////////////////////////////////
   public static void OntModelRootclassList(OntModel omod,PrintWriter fout_writer,int verbose)
   {
-    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
     while (cls_itr.hasNext())
     {
@@ -213,7 +213,7 @@ public class jena_utils
   /////////////////////////////////////////////////////////////////////////////
   public static void OntModelSubclassList(OntModel omod, PrintWriter fout_writer, int verbose)
   {
-    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
     int i_subcls=0;
     while (cls_itr.hasNext())
@@ -250,7 +250,7 @@ public class jena_utils
         throws Exception
   {
     fout_writer.write("node_or_edge\tid\tlabel\tcomment\tsource\ttarget\turi\n");
-    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses(); //All classes.
     int i_cls=0;
     int i_subcls=0;
     while (cls_itr.hasNext())
@@ -273,10 +273,9 @@ public class jena_utils
       fout_writer.write(String.format("node\t%s\t%s\t%s\t\t\t%s\n", id, label, comment, uri)); 
       ++i_cls;
     }
-    cls_itr = omod.listNamedClasses(); //rewind for subclasses/edges
+    cls_itr = omod.listClasses(); //rewind for subclasses/edges
     while (cls_itr.hasNext())
     {
-      ++i_cls;
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
       ExtendedIterator<OntClass> subcls_itr = cls.listSubClasses();
@@ -300,7 +299,7 @@ public class jena_utils
   public static void OntModel2CYJS(OntModel omod, PrintWriter fout_writer, int verbose)
         throws Exception
   {
-    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
     int i_subcls=0;
 
@@ -347,10 +346,9 @@ public class jena_utils
     elements.put("nodes", nodes);
 
     ArrayList<HashMap<String, Object> > edges = new ArrayList<HashMap<String, Object> >();
-    cls_itr = omod.listNamedClasses(); //rewind for subclasses/edges
+    cls_itr = omod.listClasses(); //rewind for subclasses/edges
     while (cls_itr.hasNext())
     {
-      ++i_cls;
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
       String id=uri.replaceFirst("^.*/","");
@@ -389,7 +387,7 @@ public class jena_utils
   */
   public static void OntModel2GraphML(OntModel omod, PrintWriter fout_writer, int verbose)
   {
-    ExtendedIterator<OntClass> cls_itr = omod.listNamedClasses();
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
     int i_subcls=0;
     fout_writer.write(
@@ -434,10 +432,9 @@ public class jena_utils
       ++i_cls;
     }
 
-    cls_itr = omod.listNamedClasses(); //rewind for subclasses/edges
+    cls_itr = omod.listClasses(); //rewind for subclasses/edges
     while (cls_itr.hasNext())
     {
-      ++i_cls;
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
       String id=uri.replaceFirst("^.*/","");
@@ -454,7 +451,6 @@ public class jena_utils
 +"    </edge>\n"
 	);
         ++i_subcls;
-
       }
     }
       fout_writer.write(
