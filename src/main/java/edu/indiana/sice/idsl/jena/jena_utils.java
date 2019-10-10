@@ -264,10 +264,12 @@ public class jena_utils
       label=(label!=null)?label.replaceAll("&","&amp;"):"";
       label=(label!=null)?label.replaceAll("<","&lt;"):"";
       label=(label!=null)?label.replaceAll(">","&gt;"):"";
+      label=(label!=null)?label.replaceAll("[\n\r]"," "):"";
       String comment=cls.getComment(null);
       comment=(comment!=null)?comment.replaceAll("&","&amp;"):"";
       comment=(comment!=null)?comment.replaceAll("<","&lt;"):"";
       comment=(comment!=null)?comment.replaceAll(">","&gt;"):"";
+      comment=(comment!=null)?comment.replaceAll("[\n\r]"," "):"";
       fout_writer.write(String.format("node\t%s\t%s\t%s\t\t\t%s\n", id, label, comment, uri)); 
       ++i_cls;
     }
