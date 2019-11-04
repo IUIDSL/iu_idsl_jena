@@ -293,7 +293,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  /**	Converts ontology class hierarchy to edge list suitable for Pandas & NetworkX.
+  /**	Converts ontology to edge list suitable for Pandas/NetworkX.
 	https://networkx.github.io/documentation/stable/reference/generated/networkx.convert_matrix.from_pandas_edgelist.html
   */
   public static void OntModel2Edgelist(OntModel omod, PrintWriter fout_writer, int verbose)
@@ -324,6 +324,40 @@ public class jena_utils
     }
     System.err.println("nodes (classes): "+ids.size()+", edges (has_subclass): "+i_edge);
   }
+  /////////////////////////////////////////////////////////////////////////////
+  /**	Converts ontology classes to node list suitable for Pandas/NetworkX.
+  */
+  public static void OntModel2Nodelist(OntModel omod, PrintWriter fout_writer, int verbose)
+        throws Exception
+  {
+    fout_writer.write("id\turi\tlabel\tcomment\n");
+    HashSet<String> ids = new HashSet<String>();
+    ExtendedIterator<OntClass> cls_itr=omod.listClasses(); //All classes.
+    int i_cls=0;
+    while (cls_itr.hasNext())
+    {
+      OntClass cls=cls_itr.next();
+      String uri=cls.getURI();
+      if (uri==null) continue; //error
+      String id=uri.replaceFirst("^.*/","");
+      ids.add(id);
+      String label=cls.getLabel(null);
+      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
+      label=(label!=null)?label.replaceAll("&","&amp;"):"";
+      label=(label!=null)?label.replaceAll("<","&lt;"):"";
+      label=(label!=null)?label.replaceAll(">","&gt;"):"";
+      label=(label!=null)?label.replaceAll("[\\t\\n\\r]"," "):"";
+      String comment=cls.getComment(null);
+      comment=(comment!=null)?comment.replaceAll("&","&amp;"):"";
+      comment=(comment!=null)?comment.replaceAll("<","&lt;"):"";
+      comment=(comment!=null)?comment.replaceAll(">","&gt;"):"";
+      comment=(comment!=null)?comment.replaceAll("[\\t\\n\\r]"," "):"";
+      fout_writer.write(String.format("%s\t%s\t%s\t%s\n", id, uri, label, comment)); 
+      ++i_cls;
+    }
+    System.err.println("nodes (classes): "+ids.size());
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology class hierarchy to a Cytoscape JS format directed
 	graph for processing and viewing.  Use Jackson-databind library.
@@ -568,6 +602,7 @@ public class jena_utils
   private static Boolean ont2graphml=false;
   private static Boolean ont2cyjs=false;
   private static Boolean ont2edgelist=false;
+  private static Boolean ont2nodelist=false;
   private static Boolean ont2tsv=false;
   private static Boolean list_classes=false;
   private static String otype="OWL";
@@ -604,6 +639,7 @@ public class jena_utils
       +"  -ont2graphml .................. convert ontology class hierarchy to GraphML format \n"
       +"  -ont2cyjs ..................... convert ontology class hierarchy to CYJS format \n"
       +"  -ont2edgelist ................. convert ontology class hierarchy to Pandas/NetworkX edgelist\n"
+      +"  -ont2nodelist ................. convert ontology class hierarchy to Pandas/NetworkX nodelist\n"
       +"  -query_rdf .................... query RDF\n"
       +"  -query_endpoint ............... query endpoint URL\n"
       +"\n"
@@ -645,6 +681,7 @@ public class jena_utils
       else if (args[i].equals("-ont2graphml")) ont2graphml=true;
       else if (args[i].equals("-ont2cyjs")) ont2cyjs=true;
       else if (args[i].equals("-ont2edgelist")) ont2edgelist=true;
+      else if (args[i].equals("-ont2nodelist")) ont2nodelist=true;
       else if (args[i].equals("-ont2tsv")) ont2tsv=true;
       else if (args[i].equals("-ontology_type")) otype=args[++i];
       else if (args[i].equals("-validate_rdf")) validate_rdf=true;
@@ -786,6 +823,10 @@ public class jena_utils
     else if (ont2edgelist) {
       if (omod==null) Help("-ontfile required");
       OntModel2Edgelist(omod,fout_writer,verbose);
+    }
+    else if (ont2nodelist) {
+      if (omod==null) Help("-ontfile required");
+      OntModel2Nodelist(omod,fout_writer,verbose);
     }
     else if (query_rdf) {
       if (dset==null) Help("-rdffiles required");
