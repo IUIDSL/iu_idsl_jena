@@ -307,6 +307,7 @@ public class jena_utils
     {
       OntClass cls=cls_itr.next();
       String uri=cls.getURI();
+      if (uri==null) continue; //error
       String id=uri.replaceFirst("^.*/","");
       ids.add(id);
       ExtendedIterator<OntClass> subcls_itr = cls.listSubClasses();
@@ -314,8 +315,8 @@ public class jena_utils
       {
         OntClass subcls = subcls_itr.next();
         String uri_sub=subcls.getURI(); //target
-        String id_sub=uri_sub.replaceFirst("^.*/","");
         if (uri_sub==null) continue; //error
+        String id_sub=uri_sub.replaceFirst("^.*/","");
         String edge_attr="has_subclass";
         fout_writer.write(String.format("%s\t%s\t%s\n", id, id_sub, edge_attr)); 
         ++i_edge;
@@ -643,6 +644,7 @@ public class jena_utils
       else if (args[i].equals("-list_rootclasses")) list_rootclasses=true;
       else if (args[i].equals("-ont2graphml")) ont2graphml=true;
       else if (args[i].equals("-ont2cyjs")) ont2cyjs=true;
+      else if (args[i].equals("-ont2edgelist")) ont2edgelist=true;
       else if (args[i].equals("-ont2tsv")) ont2tsv=true;
       else if (args[i].equals("-ontology_type")) otype=args[++i];
       else if (args[i].equals("-validate_rdf")) validate_rdf=true;
