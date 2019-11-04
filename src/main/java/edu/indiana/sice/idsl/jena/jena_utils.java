@@ -293,6 +293,37 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
+  /**	Converts ontology class hierarchy to edge list suitable for Pandas & NetworkX.
+	https://networkx.github.io/documentation/stable/reference/generated/networkx.convert_matrix.from_pandas_edgelist.html
+  */
+  public static void OntModel2Edgelist(OntModel omod, PrintWriter fout_writer, int verbose)
+        throws Exception
+  {
+    fout_writer.write("source\ttarget\tedge_attr\n");
+    HashSet<String> ids = new HashSet<String>();
+    ExtendedIterator<OntClass> cls_itr=omod.listClasses(); //All classes.
+    int i_edge=0;
+    while (cls_itr.hasNext())
+    {
+      OntClass cls=cls_itr.next();
+      String uri=cls.getURI();
+      String id=uri.replaceFirst("^.*/","");
+      ids.add(id);
+      ExtendedIterator<OntClass> subcls_itr = cls.listSubClasses();
+      while (subcls_itr.hasNext())
+      {
+        OntClass subcls = subcls_itr.next();
+        String uri_sub=subcls.getURI(); //target
+        String id_sub=uri_sub.replaceFirst("^.*/","");
+        if (uri_sub==null) continue; //error
+        String edge_attr="has_subclass";
+        fout_writer.write(String.format("%s\t%s\t%s\n", id, id_sub, edge_attr)); 
+        ++i_edge;
+      }
+    }
+    System.err.println("nodes (classes): "+ids.size()+", edges (has_subclass): "+i_edge);
+  }
+  /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology class hierarchy to a Cytoscape JS format directed
 	graph for processing and viewing.  Use Jackson-databind library.
   */
@@ -535,6 +566,7 @@ public class jena_utils
   private static Boolean list_rootclasses=false;
   private static Boolean ont2graphml=false;
   private static Boolean ont2cyjs=false;
+  private static Boolean ont2edgelist=false;
   private static Boolean ont2tsv=false;
   private static Boolean list_classes=false;
   private static String otype="OWL";
@@ -570,6 +602,7 @@ public class jena_utils
       +"  -list_rootclasses ............. list ontology root classes\n"
       +"  -ont2graphml .................. convert ontology class hierarchy to GraphML format \n"
       +"  -ont2cyjs ..................... convert ontology class hierarchy to CYJS format \n"
+      +"  -ont2edgelist ................. convert ontology class hierarchy to Pandas/NetworkX edgelist\n"
       +"  -query_rdf .................... query RDF\n"
       +"  -query_endpoint ............... query endpoint URL\n"
       +"\n"
@@ -747,6 +780,10 @@ public class jena_utils
     else if (ont2tsv) {
       if (omod==null) Help("-ontfile required");
       OntModel2TSV(omod,fout_writer,verbose);
+    }
+    else if (ont2edgelist) {
+      if (omod==null) Help("-ontfile required");
+      OntModel2Edgelist(omod,fout_writer,verbose);
     }
     else if (query_rdf) {
       if (dset==null) Help("-rdffiles required");
