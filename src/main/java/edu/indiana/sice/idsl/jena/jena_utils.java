@@ -371,7 +371,7 @@ public class jena_utils
 
     HashMap<String,Object> root = new HashMap<String,Object>();
     root.put("format_version", "1.0");
-    root.put("generated_by", "cytoscape-3.7.1");
+    root.put("generated_by", "edu.indiana.sice.idsl.jena.jena_utils");
     root.put("target_cytoscapejs_version", "~2.1");
     HashMap<String,Object> data = new HashMap<String,Object>();
     data.put("shared_name", "ONTOLOGY_CLASS_HIERARCHY");
@@ -417,6 +417,7 @@ public class jena_utils
     {
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
+      if (uri==null) continue; //error
       String id=uri.replaceFirst("^.*/","");
       ExtendedIterator<OntClass> subcls_itr = cls.listSubClasses();
       while (subcls_itr.hasNext())
