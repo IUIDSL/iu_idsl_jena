@@ -258,18 +258,24 @@ public class jena_utils
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
       if (uri==null) continue; //error
-      String id=uri.replaceFirst("^.*/","");
-      String label=cls.getLabel(null);
-      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
-      label=(label!=null)?label.replaceAll("&","&amp;"):"";
-      label=(label!=null)?label.replaceAll("<","&lt;"):"";
-      label=(label!=null)?label.replaceAll(">","&gt;"):"";
-      label=(label!=null)?label.replaceAll("[\\t\\n\\r]"," "):"";
-      String comment=cls.getComment(null);
-      comment=(comment!=null)?comment.replaceAll("&","&amp;"):"";
-      comment=(comment!=null)?comment.replaceAll("<","&lt;"):"";
-      comment=(comment!=null)?comment.replaceAll(">","&gt;"):"";
-      comment=(comment!=null)?comment.replaceAll("[\\t\\n\\r]"," "):"";
+      String id = uri.replaceFirst("^.*/","");
+      String label = cls.getLabel(null);
+      if (label!=null) {
+        label = label.replaceFirst("[\\s]+$","")
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll("\"","&quot;")
+          .replaceAll("[\\t\\n\\r]"," ");
+      }
+      String comment = cls.getComment(null);
+      if (comment!=null) {
+        comment = comment.replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll("\"","&quot;")
+          .replaceAll("[\\t\\n\\r]"," ");
+      }
       fout_writer.write(String.format("node\t%s\t%s\t%s\t\t\t%s\n", id, label, comment, uri)); 
       ++i_cls;
     }
