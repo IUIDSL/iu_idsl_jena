@@ -6,6 +6,9 @@ import java.util.*;
 import java.util.regex.*;
 import java.net.*; //URL
 
+import org.apache.commons.cli.*; // CommandLine, CommandLineParser, HelpFormatter, OptionBuilder, Options, ParseException, PosixParser
+import org.apache.commons.cli.Option.*; // Builder
+
 import com.hp.hpl.jena.ontology.*; //OntModel
 import com.hp.hpl.jena.rdf.model.*;
 import com.hp.hpl.jena.util.FileManager;
@@ -23,7 +26,7 @@ import com.fasterxml.jackson.databind.*; //ObjectMapper, JsonNode
 
 import org.apache.jena.atlas.logging.LogCtl;
 
-/**	Static utility methods for Jena.
+/**	Jena utility app.
 	@author Jeremy Yang
 */
 public class jena_utils
@@ -597,121 +600,120 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  private static int verbose=0;
+  private static String APPNAME="JENA_APP";
+  //Required (one of):
   private static String ifile_ont=null;
   private static String url_ont=null;
+  //Options:
+  private static String endpoint_url=null;
+  private static String sparql=null;
+  private static String sparqlfile=null;
   private static String [] ifiles_rdf=null;
+  private static String dlang=null;
   private static String ofile=null;
+  private static String otype="OWL";
+  private static int verbose=0;
+  //Operations:
   private static Boolean describe_ontology=false;
   private static Boolean describe_rdf=false;
+  private static Boolean validate_ontology=false;
+  private static Boolean validate_rdf=false;
+  private static Boolean list_classes=false;
   private static Boolean list_subclasses=false;
   private static Boolean list_rootclasses=false;
+  private static Boolean query_rdf=false;
+  private static Boolean query_endpoint=false;
   private static Boolean ont2graphml=false;
   private static Boolean ont2cyjs=false;
   private static Boolean ont2edgelist=false;
   private static Boolean ont2nodelist=false;
   private static Boolean ont2tsv=false;
-  private static Boolean list_classes=false;
-  private static String otype="OWL";
-  private static Boolean validate_rdf=false;
-  private static Boolean validate_ont=false;
   private static Boolean infer_all=false;
-  private static Boolean query_rdf=false;
-  private static Boolean query_endpoint=false;
-  private static String dlang=null;
-  private static String endpoint_url=null;
-  private static String rq=null;
-  private static String rqfile=null;
 
-  private static void Help(String msg)
+  /////////////////////////////////////////////////////////////////////////////
+  public static void main(String [] args) throws Exception
   {
-    System.err.println(msg+"\n"
-      +"jena_utils - Jena utility\n"
-      +"\n"
-      +"usage: jena_utils [options]\n"
-      +"input:\n"
-      +"  -rdffiles FILE1[,FILE2...]  ... data file[s] (TTL|N3|RDF/XML)\n"
-      +"  -rq SPARQL .................... Sparql\n"
-      +"  -rqfile RQFILE ................ Sparql file\n"
-      +"  -endpoint_url URL ............. endpoint URL\n"
-      +"  -ontfile FILE ................. ontology file (OWL|RDFS)\n"
-      +"  -onturl URL ................... ontology URL (OWL|RDFS)\n"
-      +"\n"
-      +"operations:\n"
-      +"  -describe_rdf ................. requires RDF\n"
-      +"  -describe_ontology ............ requires ontology\n"
-      +"  -list_classes ................. list ontology classes with labels\n"
-      +"  -list_subclasses .............. list ontology subclass relationships\n"
-      +"  -list_rootclasses ............. list ontology root classes\n"
-      +"  -ont2graphml .................. convert ontology class hierarchy to GraphML format \n"
-      +"  -ont2cyjs ..................... convert ontology class hierarchy to CYJS format \n"
-      +"  -ont2edgelist ................. convert ontology class hierarchy to Pandas/NetworkX edgelist\n"
-      +"  -ont2nodelist ................. convert ontology class hierarchy to Pandas/NetworkX nodelist\n"
-      +"  -query_rdf .................... query RDF\n"
-      +"  -query_endpoint ............... query endpoint URL\n"
-      +"\n"
-      +"reasoner operations (may be slow):\n"
-      +"  -validate_rdf ................. validate data + ontology\n"
-      +"  -validate_ont ................. validate ontology\n"
-      +"  -infer_all .................... infer all statements, asserted and entailed\n"
-      +"\n"
-      +"options:\n"
-      +"  -o OFILE ...................... normally CSV\n"
-      +"  -ontology_type OTYPE .......... OWL|RDFS ["+otype+"]\n"
-      +"  -dlang LANG ................... data language (RDF/XML|TTL|N3)\n"
-      +"  -v[v[v]] ...................... verbose [very [very]]\n"
-      +"  -h ............................ this help\n"
-      +"\n"
-      +"Notes:\n"
+    String HELPHEADER =  "JENA_APP: Jena utilities";
+    String HELPFOOTER = ("Notes:\n"
       +"  * 1st data file is default graph.\n"
       +"  * OWL must be RDF/XML format.\n"
-      +"  * Validation can be slow and memory intensive.\n"
-	);
-    System.exit(1);
-  }
+      +"  * Reasoner operations may be slow.\n"
+      +"  * Validation can be slow and memory intensive.");
+    Options opts = new Options();
+    opts.addOption(Option.builder("ifile_ont").hasArg().argName("IFILE_ONT").desc("Input ontology file (OWL|RDFS)").build());
+    opts.addOption(Option.builder("url_ont").hasArg().argName("URL_ONT").desc("Input ontology URL (OWL|RDFS)").build());
+    opts.addOption(Option.builder("sparql").hasArg().argName("SPARQL").desc("Sparql").build());
+    opts.addOption(Option.builder("sparqlfile").hasArg().argName("SPARQLFILE").desc("Sparql file").build());
+    opts.addOption(Option.builder("endpoint_url").hasArg().argName("URL").desc("endpoint URL").build());
+    opts.addOption(Option.builder("rdffiles").hasArg().argName("RDFFILES").desc("data file[s], comma-separated list (TTL|N3|RDF/XML)").build());
+    opts.addOption(Option.builder("o").longOpt("ofile").hasArg().argName("OFILE").desc("Output file").build());
 
-  /////////////////////////////////////////////////////////////////////////////
-  private static void ParseCommand(String args[])
-  {
-    if (args.length==0) Help("");
-    for (int i=0;i<args.length;++i)
-    {
-      if (args[i].equals("-ontfile")) ifile_ont=args[++i];
-      else if (args[i].equals("-onturl")) url_ont=args[++i];
-      else if (args[i].equals("-rdffiles")) ifiles_rdf = Pattern.compile(",").split(args[++i]);
-      else if (args[i].equals("-o")) ofile=args[++i];
-      else if (args[i].equals("-describe_ontology")) describe_ontology=true;
-      else if (args[i].equals("-describe_rdf")) describe_rdf=true;
-      else if (args[i].equals("-list_classes")) list_classes=true;
-      else if (args[i].equals("-list_subclasses")) list_subclasses=true;
-      else if (args[i].equals("-list_rootclasses")) list_rootclasses=true;
-      else if (args[i].equals("-ont2graphml")) ont2graphml=true;
-      else if (args[i].equals("-ont2cyjs")) ont2cyjs=true;
-      else if (args[i].equals("-ont2edgelist")) ont2edgelist=true;
-      else if (args[i].equals("-ont2nodelist")) ont2nodelist=true;
-      else if (args[i].equals("-ont2tsv")) ont2tsv=true;
-      else if (args[i].equals("-ontology_type")) otype=args[++i];
-      else if (args[i].equals("-validate_rdf")) validate_rdf=true;
-      else if (args[i].equals("-validate_ont")) validate_ont=true;
-      else if (args[i].equals("-infer_all")) infer_all=true;
-      else if (args[i].equals("-query_rdf")) query_rdf=true;
-      else if (args[i].equals("-query_endpoint")) query_endpoint=true;
-      else if (args[i].equals("-dlang")) dlang=args[++i];
-      else if (args[i].equals("-endpoint_url")) endpoint_url=args[++i];
-      else if (args[i].equals("-rq")) rq=args[++i];
-      else if (args[i].equals("-rqfile")) rqfile=args[++i];
-      else if (args[i].equals("-v")) verbose=1;
-      else if (args[i].equals("-vv")) verbose=2;
-      else if (args[i].equals("-vvv"))verbose=3;
-      else if (args[i].equals("-h")) Help("");
-      else Help("Unknown option: "+args[i]);
+    opts.addOption(Option.builder("describe_rdf").desc("requires RDF").build());
+    opts.addOption(Option.builder("describe_ontology").desc("requires ontology").build());
+    opts.addOption(Option.builder("list_classes").desc("list ontology classes with labels").build());
+    opts.addOption(Option.builder("list_subclasses").desc("list ontology subclass relationships").build());
+    opts.addOption(Option.builder("list_rootclasses").desc("list ontology root classes").build());
+    opts.addOption(Option.builder("ont2graphml").desc("convert ontology class hierarchy to GraphML format ").build());
+    opts.addOption(Option.builder("ont2cyjs").desc("convert ontology class hierarchy to CYJS format ").build());
+    opts.addOption(Option.builder("ont2edgelist").desc("convert ontology class hierarchy to Pandas/NetworkX edgelist").build());
+    opts.addOption(Option.builder("ont2nodelist").desc("convert ontology class hierarchy to Pandas/NetworkX nodelist").build());
+    opts.addOption(Option.builder("query_rdf").desc("query RDF").build());
+    opts.addOption(Option.builder("query_endpoint").desc("query endpoint URL").build());
+    opts.addOption(Option.builder("validate_rdf").desc("validate data + ontology").build());
+    opts.addOption(Option.builder("validate_ontology").desc("validate ontology").build());
+    opts.addOption(Option.builder("infer_all").desc("infer all statements, asserted and entailed").build());
+
+    opts.addOption(Option.builder("ontology_type").hasArg().argName("OTYPE").desc("OWL|RDFS ["+otype+"]").build());
+    opts.addOption(Option.builder("dlang").hasArg().argName("LANG").desc("data language (RDF/XML|TTL|N3)").build());
+
+    opts.addOption("v", "verbose", false, "Verbose.");
+    opts.addOption("vv", "vverbose", false, "Very verbose.");
+    opts.addOption("vvv", "vvverbose", false, "Very very verbose.");
+    opts.addOption("h", "help", false, "Show this help.");
+    HelpFormatter helper = new HelpFormatter();
+    CommandLineParser clip = new PosixParser();
+    CommandLine clic = null;
+    try {
+      clic = clip.parse(opts, args);
+    } catch (ParseException e) {
+      helper.printHelp(APPNAME, HELPHEADER, opts, e.getMessage(), true);
+      System.exit(0);
     }
-  }
-  /////////////////////////////////////////////////////////////////////////////
-  public static void main(String [] args)
-        throws Exception
-  {
-    ParseCommand(args);
+    if (clic.hasOption("ifile_ont")) ifile_ont = clic.getOptionValue("ifile_ont");
+    else if (clic.hasOption("url_ont")) url_ont = clic.getOptionValue("url_ont");
+    else {
+      helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont requied."), true);
+      System.exit(0);
+    }
+    if (clic.hasOption("o")) ofile = clic.getOptionValue("o");
+    if (clic.hasOption("dlang")) dlang = clic.getOptionValue("dlang");
+    if (clic.hasOption("otype")) otype = clic.getOptionValue("otype");
+    if (clic.hasOption("endpoint_url")) endpoint_url = clic.getOptionValue("endpoint_url");
+    if (clic.hasOption("sparql")) sparql = clic.getOptionValue("sparql");
+    if (clic.hasOption("sparqlfile")) sparqlfile = clic.getOptionValue("sparqlfile");
+    if (clic.hasOption("rdffiles")) ifiles_rdf = Pattern.compile("[\\s,]+").split(clic.getOptionValue("rdffiles"));
+    if (clic.hasOption("describe_ontology")) describe_ontology = true;
+    if (clic.hasOption("describe_rdf")) describe_rdf=true;
+    if (clic.hasOption("list_subclasses")) list_subclasses=true;
+    if (clic.hasOption("list_rootclasses")) list_rootclasses=true;
+    if (clic.hasOption("ont2graphml")) ont2graphml=true;
+    if (clic.hasOption("ont2cyjs")) ont2cyjs=true;
+    if (clic.hasOption("ont2edgelist")) ont2edgelist=true;
+    if (clic.hasOption("ont2nodelist")) ont2nodelist=true;
+    if (clic.hasOption("ont2tsv")) ont2tsv=true;
+    if (clic.hasOption("list_classes")) list_classes=true;
+    if (clic.hasOption("validate_rdf")) validate_rdf=true;
+    if (clic.hasOption("validate_ontology")) validate_ontology=true;
+    if (clic.hasOption("infer_all")) infer_all=true;
+    if (clic.hasOption("query_rdf")) query_rdf=true;
+    if (clic.hasOption("query_endpoint")) query_endpoint=true;
+    if (clic.hasOption("vvv")) verbose = 3;
+    else if (clic.hasOption("vv")) verbose = 2;
+    else if (clic.hasOption("v")) verbose = 1;
+    if (clic.hasOption("h")) {
+      helper.printHelp(APPNAME, HELPHEADER, opts, HELPFOOTER, true);
+      System.exit(0);
+    }
 
     //String jenapropfile = null;
     if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
@@ -721,28 +723,21 @@ public class jena_utils
     else
       LogCtl.setLog4j();
 
-    //if (verbose>1) System.err.println("jenapropfile: "+jenapropfile);
-    //LogCtl.setLog4j(jenapropfile);
-
-    PrintWriter fout_writer = (ofile!=null) ?
-      new PrintWriter(new BufferedWriter(new FileWriter(new File(ofile),false)))
-      : new PrintWriter((OutputStream)System.out);
+    PrintWriter fout_writer = (ofile!=null)?(new PrintWriter(new BufferedWriter(new FileWriter(new File(ofile),false)))):(new PrintWriter((OutputStream)System.out));
 
     if (verbose>0)
-    {
       System.err.println("Jena version: "+jena.version.VERSION);
-      //System.err.println("Jena-ARQ version: "+ARQ.VERSION);
-    }
 
-    if (rqfile!=null) //read file into rq
+    if (sparqlfile!=null) //read file into rq
     {
       if (verbose>0)
-        System.err.println("rqfile: "+rqfile);
-      BufferedReader buff = new BufferedReader(new FileReader(rqfile));
-      if (buff==null) Help("Cannot open sparql file: "+rqfile);
+        System.err.println("sparqlfile: "+sparqlfile);
+      BufferedReader buff = new BufferedReader(new FileReader(sparqlfile));
+      if (buff==null)
+      helper.printHelp(APPNAME, HELPHEADER, opts, ("Cannot open sparql file: "+sparqlfile), true);
       String line="";
-      rq="";
-      while ((line=buff.readLine())!=null) rq+=(line+"\n");
+      sparql="";
+      while ((line=buff.readLine())!=null) sparql+=(line+"\n");
       buff.close();
     }
 
@@ -751,9 +746,9 @@ public class jena_utils
     // Input ontology
     OntModel omod = null;
     if (ifile_ont!=null)
-      omod = LoadOntologyFile(ifile_ont,otype,verbose);
+      omod = LoadOntologyFile(ifile_ont, otype, verbose);
     else if (url_ont!=null)
-      omod = LoadOntologyUrl(url_ont,otype,verbose);
+      omod = LoadOntologyUrl(url_ont, otype, verbose);
 
     // Input dataset (1+ files, models, graphs)
     Model [] rmods = null;
@@ -765,88 +760,106 @@ public class jena_utils
     }
 
     if (verbose>0 && dset!=null) {
-      DescribeDataset(dset,verbose);
+      DescribeDataset(dset, verbose);
     }
 
     if (describe_ontology) {
-      if (omod==null) Help("-ontfile required");
-      DescribeOntology(omod,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      DescribeOntology(omod, verbose);
     }
     else if (describe_rdf) {
-      if (rmods==null) Help("-rdffiles required");
+      if (rmods==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-rdffiles required"), true);
       for (Model rmod: rmods)
       {
-        DescribeRDF(rmod,verbose);
+        DescribeRDF(rmod, verbose);
       }
     }
     else if (validate_rdf) {
-      if (rmods==null) Help("-rdffiles required");
+      if (rmods==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-rdffiles required"), true);
       Reasoner reasoner = null;
       if (omod!=null) {
         reasoner = ReasonerRegistry.getOWLReasoner();
         reasoner = reasoner.bindSchema(omod);
       }
       for (Model rmod: rmods) {
-        ValidateModel(rmod,reasoner);
+        ValidateModel(rmod, reasoner);
       }
     }
-    else if (validate_ont) {
-      if (omod==null) Help("-ontfile required");
-      ValidateModel(omod,null);
+    else if (validate_ontology) {
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      ValidateModel(omod, null);
     }
     else if (infer_all) {
-      if (rmods==null) Help("-rdffiles required");
-      if (omod==null) Help("-ontfile required");
+      if (rmods==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-rdffiles required"), true);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont required"), true);
       Reasoner reasoner = ReasonerRegistry.getTransitiveReasoner();
       reasoner = reasoner.bindSchema(omod);
       for (Model rmod: rmods) {
-        InferAllStatements(rmod,reasoner,fout_writer,verbose);
+        InferAllStatements(rmod, reasoner, fout_writer, verbose);
       }
     }
     else if (list_classes) {
-      if (omod==null) Help("-ontfile required");
-      OntModelClassList(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModelClassList(omod, fout_writer, verbose);
     }
     else if (list_subclasses) {
-      if (omod==null) Help("-ontfile required");
-      OntModelSubclassList(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModelSubclassList(omod, fout_writer, verbose);
     }
     else if (list_rootclasses) {
-      if (omod==null) Help("-ontfile required");
-      OntModelRootclassList(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModelRootclassList(omod, fout_writer, verbose);
     }
     else if (ont2graphml) {
-      if (omod==null) Help("-ontfile required");
-      OntModel2GraphML(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModel2GraphML(omod, fout_writer, verbose);
     }
     else if (ont2cyjs) {
-      if (omod==null) Help("-ontfile required");
-      OntModel2CYJS(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModel2CYJS(omod, fout_writer, verbose);
     }
     else if (ont2tsv) {
-      if (omod==null) Help("-ontfile required");
-      OntModel2TSV(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModel2TSV(omod, fout_writer, verbose);
     }
     else if (ont2edgelist) {
-      if (omod==null) Help("-ontfile required");
-      OntModel2Edgelist(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModel2Edgelist(omod, fout_writer, verbose);
     }
     else if (ont2nodelist) {
-      if (omod==null) Help("-ontfile required");
-      OntModel2Nodelist(omod,fout_writer,verbose);
+      if (omod==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      OntModel2Nodelist(omod, fout_writer, verbose);
     }
     else if (query_rdf) {
-      if (dset==null) Help("-rdffiles required");
-      if (rq==null) Help("-rq or -rqfile required");
-      QueryRDF(dset,rq,fout_writer,verbose);
+      if (dset==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-rdffiles required"), true);
+      if (sparql==null) 
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
+      QueryRDF(dset, sparql, fout_writer, verbose);
     }
     else if (query_endpoint) { // Execute SELECT query using specified endpoint URL.
-      if (endpoint_url==null) Help("-endpoint_url required");
-      if (rq==null) Help("-rq or -rqfile required");
-      QueryEndpoint(endpoint_url,rq,fout_writer,verbose);
+      if (endpoint_url==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-endpoint_url required"), true);
+      if (sparql==null)
+        helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
+      QueryEndpoint(endpoint_url, sparql, fout_writer, verbose);
     }
     else {
-      Help("ERROR: no operation specified.");
+      helper.printHelp(APPNAME, HELPHEADER, opts, ("ERROR: no operation specified."), true);
     }
     fout_writer.close();
   }
