@@ -657,6 +657,7 @@ public class jena_utils
     opts.addOption(Option.builder("ont2cyjs").desc("convert ontology class hierarchy to CYJS format ").build());
     opts.addOption(Option.builder("ont2edgelist").desc("convert ontology class hierarchy to Pandas/NetworkX edgelist").build());
     opts.addOption(Option.builder("ont2nodelist").desc("convert ontology class hierarchy to Pandas/NetworkX nodelist").build());
+    opts.addOption(Option.builder("ont2tsv").desc("convert ontology class hierarchy to TSV").build());
     opts.addOption(Option.builder("query_rdf").desc("query RDF").build());
     opts.addOption(Option.builder("query_endpoint").desc("query endpoint URL").build());
     opts.addOption(Option.builder("validate_rdf").desc("validate data + ontology").build());
