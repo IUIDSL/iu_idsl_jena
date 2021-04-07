@@ -247,6 +247,28 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
+  /**	Determine node level in class hierarchy. Normally one root
+	but possibly many. Return minimum level, defined as distance
+	to nearest root.  TO-DO (not so easy).
+  */
+//  public static Integer NodeHierarchyLevel(OntModel omod, OntClass cls) throws Exception
+//  {
+//    Integer min_level=null;
+//    ExtendedIterator<OntClass> root_itr = omod.listHierarchyRootClasses();
+//    while (root_itr.hasNext())
+//    {
+//      OntClass root = root_itr.next();
+//      if (cls == root) { min_level=0; break; }
+//      ExtendedIterator<OntClass> sup_itr = cls.listSuperClasses(true);
+//      while (sup_itr.hasNext())
+//      {
+//        OntClass sup = sup_itr.next();
+//      }
+//    }
+//    return(min_level);
+//  }
+
+  /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology class hierarchy to TSV.
   */
   public static void OntModel2TSV(OntModel omod, PrintWriter fout_writer, int verbose)
