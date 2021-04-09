@@ -21,8 +21,12 @@ mvn clean install
 
 ## Usage
 
-Example
+Examples
 
 ```
 java -jar iu_idsl_jena-0.0.1-SNAPSHOT-jar-with-dependencies.jar -ontfile efo.owl -vv -ont2tsv -o efo.tsv
+```
+
+```
+java -jar iu_idsl_jena-0.0.1-SNAPSHOT-jar-with-dependencies.jar -ontfile dto_core.owl -list_toplevelsuperclassmembership -o dto_core_toplevelsuperclassmembership.tsv
 ```

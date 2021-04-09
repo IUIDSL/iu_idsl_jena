@@ -2,7 +2,7 @@ package edu.indiana.sice.idsl.jena;
 
 import java.io.*;
 import java.nio.file.*; //Files, Path
-import java.util.*;
+import java.util.*; //Collections
 import java.util.regex.*;
 import java.net.*; //URL
 
@@ -247,20 +247,76 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
+  private static String CleanLabel(String label)
+  {
+    if (label==null) return(null);
+    String label_clean = label.replaceFirst("[\\s]+$","").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\"","&quot;").replaceAll("[\\t\\n\\r]"," ");
+    return (label_clean);
+  }
+  private static String CleanComment(String comment)
+  {
+    if (comment==null) return(null);
+    String comment_clean = comment.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\"","&quot;").replaceAll("[\\t\\n\\r]"," ");
+    return (comment_clean);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  /**	For all classes, identify and output level [0-maxlevel] superclasses (0=root).
+  */
+  public static void ListToplevelSuperclassMembership(OntModel omod, PrintWriter fout_writer, int maxlevel, int verbose) throws Exception
+  {
+    fout_writer.write("id\tlabel\turi");
+    for (int j=0; j<=maxlevel; ++j) fout_writer.write("\tSuperClassUriLev_"+j+"\tSuperClassLabelLev_"+j);
+    fout_writer.write("\n");
+    ExtendedIterator<OntClass> cls_itr = omod.listClasses(); //All classes.
+    int i_cls=0;
+    while (cls_itr.hasNext())
+    {
+      OntClass cls = cls_itr.next();
+      String uri = cls.getURI();
+      if (uri==null) continue; //error
+      String id = uri.replaceFirst("^.*/","");
+      String label = CleanLabel(cls.getLabel(null));
+      fout_writer.write(String.format("%s\t%s\t%s", id, label, uri)); 
+      ArrayList<OntClass> sups = GetSuperclassListMinimal(cls);
+      for (int j=0; j<=maxlevel; ++j) {
+        if (sups!=null && j<sups.size()) {
+          uri = sups.get(j).getURI();
+          label = CleanLabel(sups.get(j).getLabel(null));
+          fout_writer.write("\t"+uri+"\t"+label);
+        }
+        else{
+          fout_writer.write("\t");
+        }
+      }
+      fout_writer.write("\n");
+      ++i_cls;
+    }
+    System.err.println("nodes (classes): "+i_cls);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
   /**	Return list of superclass lists, ordered from root.
 	Depth first search via recursion.
 	Multiple parents possible, in multi-hierarchy.
 	Minimum list length is level in class hierarchy.
   */
-  public static ArrayList<ArrayList<OntClass> > GetSuperclassLists(OntModel omod, OntClass cls) throws Exception
+  public static ArrayList<ArrayList<OntClass> > GetSuperclassLists(OntClass cls) throws Exception
   {
     ArrayList<ArrayList<OntClass> > supss = new ArrayList<ArrayList<OntClass> >(); //Superclass lists, all parents
-    if (!cls.hasSuperClass()) return(supss); //No parents, no lists.
+    //if (!cls.hasSuperClass()) return(supss); //No parents, no lists.
+    Boolean ok=false;
+    try { ok = cls.hasSuperClass(); }
+    catch (Exception e) {
+      System.err.println(e.getMessage());
+      System.err.println("DEBUG: cls.getClass().getName(): "+cls.getClass().getName());
+    }
+    if (!ok) return(supss);
     ExtendedIterator<OntClass> sup_itr = cls.listSuperClasses(true); // direct - only classes directly adjacent in hierarchy.
     while (sup_itr.hasNext()) //For each parent, recurse.
     {
       OntClass sup = sup_itr.next();
-      ArrayList<ArrayList<OntClass> > supss_this = GetSuperclassLists(omod, sup);
+      ArrayList<ArrayList<OntClass> > supss_this = GetSuperclassLists(sup);
       if (supss_this.size()==0) {
         ArrayList<OntClass> sups = new ArrayList<OntClass>(); //Superclass list, this parent, length 1.
         sups.add(sup);
@@ -270,18 +326,30 @@ public class jena_utils
         ArrayList<OntClass> sups = new ArrayList<OntClass>(); //Superclass list, this parent
         sups.add(sup);
         sups.addAll(supss_this.get(i));
+        Collections.reverse(sups); //Reverse so root is 1st.
         supss.add(sups);
       }
     }
     return (supss);
   }
+  /////////////////////////////////////////////////////////////////////////////
+  /**	Return minimum length superclass list, ordered from root.
+  */
+  public static ArrayList<OntClass> GetSuperclassListMinimal(OntClass cls) throws Exception
+  {
+    ArrayList<OntClass> sups_min = null;
+    ArrayList<ArrayList<OntClass> > supss = GetSuperclassLists(cls);
+    for (int i=0; i<supss.size(); ++i) {
+      ArrayList<OntClass> sups_this = supss.get(i);
+      if (sups_min==null || sups_this.size()<sups_min.size()) sups_min = sups_this;
+    }
+    return (sups_min);
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology class hierarchy to TSV.
   */
-  public static void OntModel2TSV(OntModel omod, PrintWriter fout_writer, int verbose)
-        throws Exception
-  {
+  public static void OntModel2TSV(OntModel omod, PrintWriter fout_writer, int verbose) throws Exception {
     fout_writer.write("node_or_edge\tid\tlabel\tcomment\tsource\ttarget\turi\n");
     ExtendedIterator<OntClass> cls_itr = omod.listClasses(); //All classes.
     int i_cls=0;
@@ -292,23 +360,8 @@ public class jena_utils
       String uri=cls.getURI();
       if (uri==null) continue; //error
       String id = uri.replaceFirst("^.*/","");
-      String label = cls.getLabel(null);
-      if (label!=null) {
-        label = label.replaceFirst("[\\s]+$","")
-          .replaceAll("&","&amp;")
-          .replaceAll("<","&lt;")
-          .replaceAll(">","&gt;")
-          .replaceAll("\"","&quot;")
-          .replaceAll("[\\t\\n\\r]"," ");
-      }
-      String comment = cls.getComment(null);
-      if (comment!=null) {
-        comment = comment.replaceAll("&","&amp;")
-          .replaceAll("<","&lt;")
-          .replaceAll(">","&gt;")
-          .replaceAll("\"","&quot;")
-          .replaceAll("[\\t\\n\\r]"," ");
-      }
+      String label = CleanLabel(cls.getLabel(null));
+      String comment = CleanComment(cls.getComment(null));
       fout_writer.write(String.format("node\t%s\t%s\t%s\t\t\t%s\n", id, label, comment, uri)); 
       ++i_cls;
     }
@@ -335,8 +388,7 @@ public class jena_utils
   /**	Converts ontology to edge list suitable for Pandas/NetworkX.
 	https://networkx.github.io/documentation/stable/reference/generated/networkx.convert_matrix.from_pandas_edgelist.html
   */
-  public static void OntModel2Edgelist(OntModel omod, PrintWriter fout_writer, int verbose)
-        throws Exception
+  public static void OntModel2Edgelist(OntModel omod, PrintWriter fout_writer, int verbose) throws Exception
   {
     fout_writer.write("source\ttarget\tedge_attr\n");
     HashSet<String> ids = new HashSet<String>();
@@ -366,8 +418,7 @@ public class jena_utils
   /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology classes to node list suitable for Pandas/NetworkX.
   */
-  public static void OntModel2Nodelist(OntModel omod, PrintWriter fout_writer, int verbose)
-        throws Exception
+  public static void OntModel2Nodelist(OntModel omod, PrintWriter fout_writer, int verbose) throws Exception
   {
     fout_writer.write("id\turi\tlabel\tcomment\n");
     HashSet<String> ids = new HashSet<String>();
@@ -380,17 +431,8 @@ public class jena_utils
       if (uri==null) continue; //error
       String id=uri.replaceFirst("^.*/","");
       ids.add(id);
-      String label=cls.getLabel(null);
-      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
-      label=(label!=null)?label.replaceAll("&","&amp;"):"";
-      label=(label!=null)?label.replaceAll("<","&lt;"):"";
-      label=(label!=null)?label.replaceAll(">","&gt;"):"";
-      label=(label!=null)?label.replaceAll("[\\t\\n\\r]"," "):"";
-      String comment=cls.getComment(null);
-      comment=(comment!=null)?comment.replaceAll("&","&amp;"):"";
-      comment=(comment!=null)?comment.replaceAll("<","&lt;"):"";
-      comment=(comment!=null)?comment.replaceAll(">","&gt;"):"";
-      comment=(comment!=null)?comment.replaceAll("[\\t\\n\\r]"," "):"";
+      String label = CleanLabel(cls.getLabel(null));
+      String comment = CleanComment(cls.getComment(null));
       fout_writer.write(String.format("%s\t%s\t%s\t%s\n", id, uri, label, comment)); 
       ++i_cls;
     }
@@ -401,8 +443,7 @@ public class jena_utils
   /**	Converts ontology class hierarchy to a Cytoscape JS format directed
 	graph for processing and viewing.  Use Jackson-databind library.
   */
-  public static void OntModel2CYJS(OntModel omod, PrintWriter fout_writer, int verbose)
-        throws Exception
+  public static void OntModel2CYJS(OntModel omod, PrintWriter fout_writer, int verbose) throws Exception
   {
     ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
@@ -426,15 +467,8 @@ public class jena_utils
       String uri=cls.getURI();
       if (uri==null) continue; //error
       String id=uri.replaceFirst("^.*/","");
-      String label=cls.getLabel(null);
-      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
-      label=(label!=null)?label.replaceAll("&","&amp;"):"";
-      label=(label!=null)?label.replaceAll("<","&lt;"):"";
-      label=(label!=null)?label.replaceAll(">","&gt;"):"";
-      String comment=cls.getComment(null);
-      comment=(comment!=null)?comment.replaceAll("&","&amp;"):"";
-      comment=(comment!=null)?comment.replaceAll("<","&lt;"):"";
-      comment=(comment!=null)?comment.replaceAll(">","&gt;"):"";
+      String label = CleanLabel(cls.getLabel(null));
+      String comment = CleanComment(cls.getComment(null));
       HashMap<String, Object> node = new HashMap<String, Object>();
       HashMap<String, Object> nodedata = new HashMap<String, Object>();
       nodedata.put("id", id);
@@ -443,10 +477,8 @@ public class jena_utils
       nodedata.put("comment", comment);
       node.put("data", nodedata);
       nodes.add(node);
-
       ++i_cls;
     }
-
     HashMap<String, Object> elements = new HashMap<String, Object>();
     elements.put("nodes", nodes);
 
@@ -519,15 +551,8 @@ public class jena_utils
       String uri=cls.getURI();
       if (uri==null) continue; //error
       String id=uri.replaceFirst("^.*/","");
-      String label=cls.getLabel(null);
-      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
-      label=(label!=null)?label.replaceAll("&","&amp;"):"";
-      label=(label!=null)?label.replaceAll("<","&lt;"):"";
-      label=(label!=null)?label.replaceAll(">","&gt;"):"";
-      String comment=cls.getComment(null);
-      comment=(comment!=null)?comment.replaceAll("&","&amp;"):"";
-      comment=(comment!=null)?comment.replaceAll("<","&lt;"):"";
-      comment=(comment!=null)?comment.replaceAll(">","&gt;"):"";
+      String label = CleanLabel(cls.getLabel(null));
+      String comment = CleanComment(cls.getComment(null));
       fout_writer.write(
 "    <node id=\""+id+"\">\n"
 +"      <data key=\"uri\">"+uri+"</data>\n"
@@ -642,6 +667,7 @@ public class jena_utils
   private static String dlang=null;
   private static String ofile=null;
   private static String otype="OWL";
+  private static int maxlevel=5;
   private static int verbose=0;
   //Operations:
   private static Boolean describe_ontology=false;
@@ -651,6 +677,7 @@ public class jena_utils
   private static Boolean list_classes=false;
   private static Boolean list_subclasses=false;
   private static Boolean list_rootclasses=false;
+  private static Boolean list_toplevelsuperclassmembership=false;
   private static Boolean query_rdf=false;
   private static Boolean query_endpoint=false;
   private static Boolean ont2graphml=false;
@@ -683,6 +710,7 @@ public class jena_utils
     opts.addOption(Option.builder("list_classes").desc("list ontology classes with labels").build());
     opts.addOption(Option.builder("list_subclasses").desc("list ontology subclass relationships").build());
     opts.addOption(Option.builder("list_rootclasses").desc("list ontology root classes").build());
+    opts.addOption(Option.builder("list_toplevelsuperclassmembership").desc("list for all classes superclass membership, top level [0-"+maxlevel+"]").build());
     opts.addOption(Option.builder("ont2graphml").desc("convert ontology class hierarchy to GraphML format ").build());
     opts.addOption(Option.builder("ont2cyjs").desc("convert ontology class hierarchy to CYJS format ").build());
     opts.addOption(Option.builder("ont2edgelist").desc("convert ontology class hierarchy to Pandas/NetworkX edgelist").build());
@@ -727,6 +755,7 @@ public class jena_utils
     if (clic.hasOption("describe_rdf")) describe_rdf=true;
     if (clic.hasOption("list_subclasses")) list_subclasses=true;
     if (clic.hasOption("list_rootclasses")) list_rootclasses=true;
+    if (clic.hasOption("list_toplevelsuperclassmembership")) list_toplevelsuperclassmembership=true;
     if (clic.hasOption("ont2graphml")) ont2graphml=true;
     if (clic.hasOption("ont2cyjs")) ont2cyjs=true;
     if (clic.hasOption("ont2edgelist")) ont2edgelist=true;
@@ -747,10 +776,10 @@ public class jena_utils
     }
 
     //String jenapropfile = null;
-    if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
+    if (Files.isReadable(FileSystems.getDefault().getPath(System.getenv("HOME")+"/../app/apache-jena", "jena-log4j.properties")))
+      LogCtl.setLog4j(System.getenv("HOME")+"/../app/apache-jena/jena-log4j.properties");
+    else if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
       LogCtl.setLog4j("src/main/resources/jena-log4j.properties");
-    else if (Files.isReadable(FileSystems.getDefault().getPath("/home/app/apache-jena", "jena-log4j.properties")))
-      LogCtl.setLog4j("/home/app/apache-jena/jena-log4j.properties");
     else
       LogCtl.setLog4j();
 
@@ -836,57 +865,49 @@ public class jena_utils
       }
     }
     else if (list_classes) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModelClassList(omod, fout_writer, verbose);
     }
     else if (list_subclasses) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModelSubclassList(omod, fout_writer, verbose);
     }
     else if (list_rootclasses) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModelRootclassList(omod, fout_writer, verbose);
     }
+    else if (list_toplevelsuperclassmembership) {
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      ListToplevelSuperclassMembership(omod, fout_writer, maxlevel, verbose);
+    }
     else if (ont2graphml) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModel2GraphML(omod, fout_writer, verbose);
     }
     else if (ont2cyjs) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModel2CYJS(omod, fout_writer, verbose);
     }
     else if (ont2tsv) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModel2TSV(omod, fout_writer, verbose);
     }
     else if (ont2edgelist) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModel2Edgelist(omod, fout_writer, verbose);
     }
     else if (ont2nodelist) {
-      if (omod==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
+      if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
       OntModel2Nodelist(omod, fout_writer, verbose);
     }
     else if (query_rdf) {
-      if (dset==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-rdffiles required"), true);
-      if (sparql==null) 
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
+      if (dset==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-rdffiles required"), true);
+      if (sparql==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
       QueryRDF(dset, sparql, fout_writer, verbose);
     }
     else if (query_endpoint) { // Execute SELECT query using specified endpoint URL.
-      if (endpoint_url==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-endpoint_url required"), true);
-      if (sparql==null)
-        helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
+      if (endpoint_url==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-endpoint_url required"), true);
+      if (sparql==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
       QueryEndpoint(endpoint_url, sparql, fout_writer, verbose);
     }
     else {
