@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.*; //ObjectMapper, JsonNode
 
 import org.apache.jena.atlas.logging.LogCtl;
 
-/**	Jena utility app.
+/**	Jena utility functions and app.
 	@author Jeremy Yang
 */
 public class jena_utils
@@ -247,26 +247,34 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  /**	Determine node level in class hierarchy. Normally one root
-	but possibly many. Return minimum level, defined as distance
-	to nearest root.  TO-DO (not so easy).
+  /**	Return list of superclass lists, ordered from root.
+	Depth first search via recursion.
+	Multiple parents possible, in multi-hierarchy.
+	Minimum list length is level in class hierarchy.
   */
-//  public static Integer NodeHierarchyLevel(OntModel omod, OntClass cls) throws Exception
-//  {
-//    Integer min_level=null;
-//    ExtendedIterator<OntClass> root_itr = omod.listHierarchyRootClasses();
-//    while (root_itr.hasNext())
-//    {
-//      OntClass root = root_itr.next();
-//      if (cls == root) { min_level=0; break; }
-//      ExtendedIterator<OntClass> sup_itr = cls.listSuperClasses(true);
-//      while (sup_itr.hasNext())
-//      {
-//        OntClass sup = sup_itr.next();
-//      }
-//    }
-//    return(min_level);
-//  }
+  public static ArrayList<ArrayList<OntClass> > GetSuperclassLists(OntModel omod, OntClass cls) throws Exception
+  {
+    ArrayList<ArrayList<OntClass> > supss = new ArrayList<ArrayList<OntClass> >(); //Superclass lists, all parents
+    if (!cls.hasSuperClass()) return(supss); //No parents, no lists.
+    ExtendedIterator<OntClass> sup_itr = cls.listSuperClasses(true); // direct - only classes directly adjacent in hierarchy.
+    while (sup_itr.hasNext()) //For each parent, recurse.
+    {
+      OntClass sup = sup_itr.next();
+      ArrayList<ArrayList<OntClass> > supss_this = GetSuperclassLists(omod, sup);
+      if (supss_this.size()==0) {
+        ArrayList<OntClass> sups = new ArrayList<OntClass>(); //Superclass list, this parent, length 1.
+        sups.add(sup);
+        supss.add(sups);
+      }
+      for (int i=0; i<supss_this.size(); ++i) {
+        ArrayList<OntClass> sups = new ArrayList<OntClass>(); //Superclass list, this parent
+        sups.add(sup);
+        sups.addAll(supss_this.get(i));
+        supss.add(sups);
+      }
+    }
+    return (supss);
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   /**	Converts ontology class hierarchy to TSV.
