@@ -279,15 +279,14 @@ public class jena_utils
       String label = CleanLabel(cls.getLabel(null));
       fout_writer.write(String.format("%s\t%s\t%s", id, label, uri)); 
       ArrayList<OntClass> sups = GetSuperclassListMinimal(cls);
+      if (sups!=null) Collections.reverse(sups); //Reverse so root is 1st.
       for (int j=0; j<=maxlevel; ++j) {
         if (sups!=null && j<sups.size()) {
           uri = sups.get(j).getURI();
           label = CleanLabel(sups.get(j).getLabel(null));
           fout_writer.write("\t"+uri+"\t"+label);
         }
-        else{
-          fout_writer.write("\t");
-        }
+        else { fout_writer.write("\t"); }
       }
       fout_writer.write("\n");
       ++i_cls;
@@ -296,22 +295,22 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  /**	Return list of superclass lists, ordered from root.
+  /**	Return list of superclass lists, ordered from adjacent parent to root.
 	Depth first search via recursion.
 	Multiple parents possible, in multi-hierarchy.
 	Minimum list length is level in class hierarchy.
   */
   public static ArrayList<ArrayList<OntClass> > GetSuperclassLists(OntClass cls) throws Exception
   {
-    ArrayList<ArrayList<OntClass> > supss = new ArrayList<ArrayList<OntClass> >(); //Superclass lists, all parents
-    //if (!cls.hasSuperClass()) return(supss); //No parents, no lists.
+    ArrayList<ArrayList<OntClass> > supss = new ArrayList<ArrayList<OntClass> >(); //List of superclass lists (LoL), all parents
+    //if (!cls.hasSuperClass()) return(supss); //No parents, no lists, return 0-length LoL.
     Boolean ok=false;
-    try { ok = cls.hasSuperClass(); }
+    try { ok = cls.hasSuperClass(); } //Why exception? Why/when not OntClass??
     catch (Exception e) {
-      System.err.println(e.getMessage());
       System.err.println("DEBUG: cls.getClass().getName(): "+cls.getClass().getName());
+      System.err.println(e.getMessage());
     }
-    if (!ok) return(supss);
+    if (!ok) return(supss); //No parents, no lists, return 0-length LoL.
     ExtendedIterator<OntClass> sup_itr = cls.listSuperClasses(true); // direct - only classes directly adjacent in hierarchy.
     while (sup_itr.hasNext()) //For each parent, recurse.
     {
@@ -326,7 +325,6 @@ public class jena_utils
         ArrayList<OntClass> sups = new ArrayList<OntClass>(); //Superclass list, this parent
         sups.add(sup);
         sups.addAll(supss_this.get(i));
-        Collections.reverse(sups); //Reverse so root is 1st.
         supss.add(sups);
       }
     }
