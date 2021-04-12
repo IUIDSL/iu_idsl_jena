@@ -277,14 +277,15 @@ public class jena_utils
       if (uri==null) continue; //error
       String id = uri.replaceFirst("^.*/","");
       String label = CleanLabel(cls.getLabel(null));
-      fout_writer.write(String.format("%s\t%s\t%s", id, label, uri)); 
+      fout_writer.write(String.format("%s\t%s\t%s", id, ((label!=null)?label:id), uri)); 
       ArrayList<OntClass> sups = GetSuperclassListMinimal(cls);
       if (sups!=null) Collections.reverse(sups); //Reverse so root is 1st.
       for (int j=0; j<=maxlevel; ++j) {
         if (sups!=null && j<sups.size()) {
           uri = sups.get(j).getURI();
+          id = uri.replaceFirst("^.*/","");
           label = CleanLabel(sups.get(j).getLabel(null));
-          fout_writer.write("\t"+uri+"\t"+label);
+          fout_writer.write("\t"+uri+"\t"+((label!=null)?label:id));
         }
         else { fout_writer.write("\t"); }
       }
@@ -292,6 +293,20 @@ public class jena_utils
       ++i_cls;
     }
     System.err.println("nodes (classes): "+i_cls);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  /**	Return minimum length superclass list, ordered from root.
+  */
+  public static ArrayList<OntClass> GetSuperclassListMinimal(OntClass cls) throws Exception
+  {
+    ArrayList<OntClass> sups_min = null;
+    ArrayList<ArrayList<OntClass> > supss = GetSuperclassLists(cls);
+    for (int i=0; i<supss.size(); ++i) {
+      ArrayList<OntClass> sups_this = supss.get(i);
+      if (sups_min==null || sups_this.size()<sups_min.size()) sups_min = sups_this;
+    }
+    return (sups_min);
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -329,19 +344,6 @@ public class jena_utils
       }
     }
     return (supss);
-  }
-  /////////////////////////////////////////////////////////////////////////////
-  /**	Return minimum length superclass list, ordered from root.
-  */
-  public static ArrayList<OntClass> GetSuperclassListMinimal(OntClass cls) throws Exception
-  {
-    ArrayList<OntClass> sups_min = null;
-    ArrayList<ArrayList<OntClass> > supss = GetSuperclassLists(cls);
-    for (int i=0; i<supss.size(); ++i) {
-      ArrayList<OntClass> sups_this = supss.get(i);
-      if (sups_min==null || sups_this.size()<sups_min.size()) sups_min = sups_this;
-    }
-    return (sups_min);
   }
 
   /////////////////////////////////////////////////////////////////////////////
