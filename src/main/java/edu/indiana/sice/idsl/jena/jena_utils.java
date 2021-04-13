@@ -259,6 +259,11 @@ public class jena_utils
     String comment_clean = comment.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\"","&quot;").replaceAll("[\\t\\n\\r]"," ");
     return (comment_clean);
   }
+  private static String Uri2Id(String uri)
+  {
+    if (uri==null) return(null);
+    return (uri.replaceFirst("^.*/", ""));
+  }
 
   /////////////////////////////////////////////////////////////////////////////
   /**	For all classes, identify and output level [0-maxlevel] superclasses (0=root).
@@ -275,7 +280,7 @@ public class jena_utils
       OntClass cls = cls_itr.next();
       String uri = cls.getURI();
       if (uri==null) continue; //error
-      String id = uri.replaceFirst("^.*/","");
+      String id = Uri2Id(uri);
       String label = CleanLabel(cls.getLabel(null));
       fout_writer.write(String.format("%s\t%s\t%s", id, ((label!=null)?label:id), uri)); 
       ArrayList<OntClass> sups = GetSuperclassListMinimal(cls);
@@ -283,7 +288,7 @@ public class jena_utils
       for (int j=0; j<=maxlevel; ++j) {
         if (sups!=null && j<sups.size()) {
           uri = sups.get(j).getURI();
-          id = uri.replaceFirst("^.*/","");
+          id = Uri2Id(uri);
           label = CleanLabel(sups.get(j).getLabel(null));
           fout_writer.write("\t"+uri+"\t"+((label!=null)?label:id));
         }
@@ -359,7 +364,7 @@ public class jena_utils
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
       if (uri==null) continue; //error
-      String id = uri.replaceFirst("^.*/","");
+      String id = Uri2Id(uri);
       String label = CleanLabel(cls.getLabel(null));
       String comment = CleanComment(cls.getComment(null));
       fout_writer.write(String.format("node\t%s\t%s\t%s\t\t\t%s\n", id, label, comment, uri)); 
