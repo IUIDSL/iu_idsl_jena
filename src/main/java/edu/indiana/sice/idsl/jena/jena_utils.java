@@ -9,8 +9,9 @@ import java.net.*; //URL
 import org.apache.commons.cli.*; // CommandLine, CommandLineParser, HelpFormatter, OptionBuilder, Options, ParseException, PosixParser
 import org.apache.commons.cli.Option.*; // Builder
 
+import org.apache.jena.rdf.model.*; // Model
+
 import com.hp.hpl.jena.ontology.*; //OntModel
-import com.hp.hpl.jena.rdf.model.*;
 import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.util.iterator.*; //ExtendedIterator
 import com.hp.hpl.jena.vocabulary.*;

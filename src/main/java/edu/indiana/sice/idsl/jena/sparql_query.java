@@ -9,7 +9,6 @@ import org.apache.jena.riot.*; //RDFFormat, RDFDataMgr
 
 import com.hp.hpl.jena.query.*; //QueryExecution, QueryExecutionFactory, ResultSet, ResultSetFormatter
 import com.hp.hpl.jena.sparql.resultset.*; //RDFOutput
-import com.hp.hpl.jena.rdf.model.*; //Model
 
 /**	Based on code from Matt Gianni, YarcData (April 2014).
 
@@ -56,42 +55,33 @@ public class sparql_query
       throws IOException
   {
     long t0 = System.nanoTime();
-
     ResultSet result = qex.execSelect();
     
     try {
-      Model mod = ResultSetFormatter.toModel(result); //Deprecated.
       if (ofmt.equalsIgnoreCase("RDF"))
       {
-        //ResultSetFormatter.outputAsRDF(ostream, RDFFormat.PLAIN.toString(), result); //Fails.
+        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.PLAIN.toString(), result); //Fails.
         //RDFOutput.outputAsRDF(ostream, RDFFormat.PLAIN.toString(), result); //Fails.
-        //Model mod = RDFOutput.encodeAsModel(result); //Fails.
-        RDFDataMgr.write(ostream, mod, RDFFormat.RDFXML) ;
       }
       else if (ofmt.equalsIgnoreCase("TTL"))
       {
-        //ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TTL.toString(), result); //Fails.
-        RDFDataMgr.write(ostream, mod, RDFFormat.TTL) ;
+        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TTL.toString(), result); //Fails.
       }
       else if (ofmt.equalsIgnoreCase("TURTLE"))
       {
-        //ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TURTLE.toString(), result); //Fails.
-        RDFDataMgr.write(ostream, mod, RDFFormat.TURTLE_PRETTY) ;
+        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TURTLE.toString(), result); //Fails.
       }
       else if (ofmt.equalsIgnoreCase("NTRIPLES"))
       {
-        //ResultSetFormatter.outputAsRDF(ostream, RDFFormat.NTRIPLES.toString(), result); //Fails.
-        RDFDataMgr.write(ostream, mod, RDFFormat.NTRIPLES) ;
+        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.NTRIPLES.toString(), result); //Fails.
       }
       else if (ofmt.equalsIgnoreCase("NT"))
       {
-        //ResultSetFormatter.outputAsRDF(ostream, RDFFormat.NT.toString(), result); //Fails.
-        RDFDataMgr.write(ostream, mod, RDFFormat.NT) ;
+        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.NT.toString(), result); //Fails.
       }
       else if (ofmt.equalsIgnoreCase("JSON"))
       {
-        //ResultSetFormatter.outputAsJSON(ostream, result);
-        RDFDataMgr.write(ostream, mod, RDFFormat.RDFJSON) ;
+        ResultSetFormatter.outputAsJSON(ostream, result);
       }
       else if (ofmt.equalsIgnoreCase("TSV"))
       {
@@ -99,7 +89,7 @@ public class sparql_query
       }
       else
       {
-        RDFDataMgr.write(ostream, mod, RDFFormat.TTL) ;
+        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TTL.toString(), result); //Fails.
       }
     } catch (Exception e) {
       System.err.println(e.toString());
