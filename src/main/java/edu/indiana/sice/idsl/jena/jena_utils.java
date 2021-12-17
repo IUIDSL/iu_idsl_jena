@@ -2,25 +2,23 @@ package edu.indiana.sice.idsl.jena;
 
 import java.io.*;
 import java.nio.file.*; //Files, Path
-import java.util.*; //Collections
+import java.util.*; //Collections, Properties
 import java.util.regex.*;
 import java.net.*; //URL
 
 import org.apache.commons.cli.*; // CommandLine, CommandLineParser, HelpFormatter, OptionBuilder, Options, ParseException, PosixParser
 import org.apache.commons.cli.Option.*; // Builder
 
+import org.apache.jena.Jena; // VERSION
 import org.apache.jena.rdf.model.*; // Model
-
-import com.hp.hpl.jena.ontology.*; //OntModel
-import com.hp.hpl.jena.util.FileManager;
-import com.hp.hpl.jena.util.iterator.*; //ExtendedIterator
-import com.hp.hpl.jena.vocabulary.*;
-import com.hp.hpl.jena.reasoner.*; //Reasoner, ReasonerRegistry, InfModel
-import com.hp.hpl.jena.reasoner.rulesys.*; //GenericRuleReasonerFactory,GenericRuleReasoner
-import com.hp.hpl.jena.query.* ; //ARQ, Dataset, DatasetFactory
-import com.hp.hpl.jena.sparql.*; //Sparql
-import com.hp.hpl.jena.sparql.engine.http.*; //QueryEngineHTTP
-import com.hp.hpl.jena.sparql.core.*; //Prologue
+import org.apache.jena.ontology.*; // OntModel
+import org.apache.jena.reasoner.*; // Reasoner, ReasonerRegistry, InfModel
+import org.apache.jena.query.*; //ARQ, Dataset, DatasetFactory
+import org.apache.jena.util.*; // FileManager,
+import org.apache.jena.util.iterator.*; // ExtendedIterator
+import org.apache.jena.sparql.*; //Sparql
+import org.apache.jena.sparql.core.*; //Prologue
+import org.apache.jena.sparql.engine.http.*; //QueryEngineHTTP
 
 import com.fasterxml.jackson.core.*; //JsonFactory, JsonGenerator
 import com.fasterxml.jackson.databind.*; //ObjectMapper, JsonNode
@@ -35,7 +33,7 @@ public class jena_utils
   /////////////////////////////////////////////////////////////////////////////
   /**	First file should be default graph.
   */
-  public static void LoadRDF(String [] ifiles_rdf, Model [] rmods, Dataset dset,int verbose)
+  public static void LoadRDF(String [] ifiles_rdf, Model [] rmods, Dataset dset)
   {
     int i_mod=0;
     for (String ifile_rdf: ifiles_rdf)
@@ -782,17 +780,17 @@ public class jena_utils
     }
 
     //String jenapropfile = null;
-    if (Files.isReadable(FileSystems.getDefault().getPath(System.getenv("HOME")+"/../app/apache-jena", "jena-log4j.properties")))
-      LogCtl.setLog4j(System.getenv("HOME")+"/../app/apache-jena/jena-log4j.properties");
-    else if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
-      LogCtl.setLog4j("src/main/resources/jena-log4j.properties");
-    else
-      LogCtl.setLog4j();
+    //if (Files.isReadable(FileSystems.getDefault().getPath(System.getenv("HOME")+"/../app/apache-jena", "jena-log4j.properties")))
+    //  LogCtl.setLog4j(System.getenv("HOME")+"/../app/apache-jena/jena-log4j.properties");
+    //else if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
+    //  LogCtl.setLog4j("src/main/resources/jena-log4j.properties");
+    //else
+    //  LogCtl.setLog4j();
 
     PrintWriter fout_writer = (ofile!=null)?(new PrintWriter(new BufferedWriter(new FileWriter(new File(ofile),false)))):(new PrintWriter((OutputStream)System.out));
 
     if (verbose>0)
-      System.err.println("Jena version: "+jena.version.VERSION);
+      System.err.println("Jena version: "+Jena.VERSION);
 
     if (sparqlfile!=null) //read file into rq
     {
@@ -821,8 +819,8 @@ public class jena_utils
     Dataset dset = null; //for named graphs
     if (ifiles_rdf!=null) {
       rmods = new Model[ifiles_rdf.length];
-      dset = DatasetFactory.createMem();
-      LoadRDF(ifiles_rdf, rmods, dset,verbose);
+      dset = DatasetFactory.create();
+      LoadRDF(ifiles_rdf, rmods, dset);
     }
 
     if (verbose>0 && dset!=null) {

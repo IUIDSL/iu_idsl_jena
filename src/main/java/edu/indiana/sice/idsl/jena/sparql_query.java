@@ -1,14 +1,14 @@
 package edu.indiana.sice.idsl.jena;
 
 import java.io.*; // BufferedReader, File, FileOutputStream, FileReader, IOException
-import java.util.*;
-import jena.version;
+import java.util.*; // Properties
 
-import org.apache.log4j.*; // Logger, BasicConfigurator
+import org.apache.logging.log4j.*; // Logger, LogManager
+import org.apache.logging.log4j.util.*; // PropertyFilePropertySource
+
+import org.apache.jena.Jena;
 import org.apache.jena.riot.*; //RDFFormat, RDFDataMgr
-
-import com.hp.hpl.jena.query.*; //QueryExecution, QueryExecutionFactory, ResultSet, ResultSetFormatter
-import com.hp.hpl.jena.sparql.resultset.*; //RDFOutput
+import org.apache.jena.query.*; //QueryExecution, QueryExecutionFactory, ResultSet, ResultSetFormatter
 
 /**	Based on code from Matt Gianni, YarcData (April 2014).
 
@@ -16,7 +16,7 @@ import com.hp.hpl.jena.sparql.resultset.*; //RDFOutput
 */
 public class sparql_query
 {
-  static Logger logger = Logger.getLogger(sparql_query.class);
+  static Logger logger = LogManager.getLogger(sparql_query.class);
 
   /////////////////////////////////////////////////////////////////////////////
   public static void RunQueries(String url, String idir, String ofmt, OutputStream ostream,int verbose)
@@ -58,26 +58,9 @@ public class sparql_query
     ResultSet result = qex.execSelect();
     
     try {
-      if (ofmt.equalsIgnoreCase("RDF"))
+      if (ofmt.equalsIgnoreCase("XML"))
       {
-        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.PLAIN.toString(), result); //Fails.
-        //RDFOutput.outputAsRDF(ostream, RDFFormat.PLAIN.toString(), result); //Fails.
-      }
-      else if (ofmt.equalsIgnoreCase("TTL"))
-      {
-        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TTL.toString(), result); //Fails.
-      }
-      else if (ofmt.equalsIgnoreCase("TURTLE"))
-      {
-        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TURTLE.toString(), result); //Fails.
-      }
-      else if (ofmt.equalsIgnoreCase("NTRIPLES"))
-      {
-        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.NTRIPLES.toString(), result); //Fails.
-      }
-      else if (ofmt.equalsIgnoreCase("NT"))
-      {
-        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.NT.toString(), result); //Fails.
+        ResultSetFormatter.outputAsXML(ostream, result);
       }
       else if (ofmt.equalsIgnoreCase("JSON"))
       {
@@ -89,7 +72,7 @@ public class sparql_query
       }
       else
       {
-        ResultSetFormatter.outputAsRDF(ostream, RDFFormat.TTL.toString(), result); //Fails.
+        ResultSetFormatter.outputAsXML(ostream, result);
       }
     } catch (Exception e) {
       System.err.println(e.toString());
@@ -144,7 +127,7 @@ public class sparql_query
       +"\n"
       +"OFMTS: RDF|TTL|NT|NTRIPLES|JSON|TSV\n"
       +"\n"
-      +"Jena version: "+jena.version.VERSION+" ("+jena.version.BUILD_DATE+")\n"
+      +"Jena version: "+Jena.VERSION+" ("+Jena.BUILD_DATE+")\n"
 	);
     System.exit(1);
   }
@@ -172,11 +155,10 @@ public class sparql_query
   public static void main(String[] args)
 	throws Exception
   {
-    //Relative or absolute path for JVM:
-    PropertyConfigurator.configure(System.getProperty("user.home")+"/src/iu-jejyang/properties/log4j.properties"); //log4j to stderr
+    Properties props = new Properties();
+    props.load(new FileInputStream(System.getProperty("user.home")+"/.log4j/properties/log4j.properties")); 
 
     ParseCommand(args);
-    //url = "http://cheminfov.informatics.indiana.edu:8890/sparql";
     if (url==null) Help("-url required");
     if (rq==null && ifile==null && idir==null) Help("-rq or -i or -idir required");
 
