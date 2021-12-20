@@ -23,7 +23,7 @@ import org.apache.jena.sparql.engine.http.*; //QueryEngineHTTP
 import com.fasterxml.jackson.core.*; //JsonFactory, JsonGenerator
 import com.fasterxml.jackson.databind.*; //ObjectMapper, JsonNode
 
-import org.apache.jena.atlas.logging.LogCtl;
+// import org.apache.jena.atlas.logging.LogCtl; //FIX!
 
 /**	Jena utility functions and app.
 	@author Jeremy Yang
@@ -33,31 +33,31 @@ public class jena_utils
   /////////////////////////////////////////////////////////////////////////////
   /**	First file should be default graph.
   */
-  public static void LoadRDF(String [] ifiles_rdf, Model [] rmods, Dataset dset)
+  public static void LoadRDF(String [] ifiles, Model [] rmods, Dataset dset)
   {
     int i_mod=0;
-    for (String ifile_rdf: ifiles_rdf)
+    for (String ifile: ifiles)
     {
-      System.err.println("ifile_rdf: "+ifile_rdf+((i_mod==0)?" (DEFAULT GRAPH)":""));
+      System.err.println("ifile: "+ifile+((i_mod==0)?" (DEFAULT GRAPH)":""));
       rmods[i_mod] = ModelFactory.createDefaultModel();
-      String fext = ifile_rdf.substring(1+ifile_rdf.lastIndexOf('.'));
+      String fext = ifile.substring(1+ifile.lastIndexOf('.'));
       String dlang = (fext.equalsIgnoreCase("TTL")?"TTL":(fext.equalsIgnoreCase("N3")?"N3":"RDF/XML"));
       System.err.println("dlang: "+dlang);
       try {
-        InputStream instr = FileManager.get().open(ifile_rdf);
-        rmods[i_mod].read(instr,"",dlang); //arg2=base_uri, arg3=lang
+        InputStream instr = FileManager.get().open(ifile);
+        rmods[i_mod].read(instr, "", dlang); //arg2=base_uri, arg3=lang
       }
       catch (Exception e) { System.err.println("ERROR: "+e.getMessage()); }
 
       ++i_mod;
     }
     for (i_mod=0;i_mod<rmods.length;++i_mod)
-      dset.addNamedModel(ifiles_rdf[i_mod],rmods[i_mod]);
+      dset.addNamedModel(ifiles[i_mod], rmods[i_mod]);
     dset.setDefaultModel(rmods[0]);
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void DescribeDataset(Dataset dset,int verbose)
+  public static void DescribeDataset(Dataset dset, int verbose)
   {
     Iterator<String> name_itr = dset.listNames();
     while (name_itr.hasNext())
@@ -70,12 +70,11 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static OntModel LoadOntologyFile(String ifile_ont,String otype,int verbose)
+  public static OntModel LoadOntologyFile(String ifile_ont, String otype)
   {
     System.err.println("ifile_ont: "+ifile_ont);
     OntDocumentManager odocmgr = new OntDocumentManager();
-
-    OntModelSpec omodspec = new OntModelSpec(otype.equalsIgnoreCase("RDFS") ? OntModelSpec.RDFS_MEM : OntModelSpec.OWL_MEM);
+    OntModelSpec omodspec = new OntModelSpec(otype.equalsIgnoreCase("RDFS")?OntModelSpec.RDFS_MEM:OntModelSpec.OWL_MEM);
     omodspec.setDocumentManager(odocmgr);
     OntModel omod = ModelFactory.createOntologyModel(omodspec, null);
     try {
@@ -87,30 +86,22 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static OntModel LoadOntologyUrl(String url_ont,String otype,int verbose)
+  public static OntModel LoadOntologyUrl(String url_ont, String otype)
   {
     System.err.println("url_ont: "+url_ont);
     OntDocumentManager odocmgr = new OntDocumentManager();
-
-    OntModelSpec omodspec = new OntModelSpec(otype.equalsIgnoreCase("RDFS") ? OntModelSpec.RDFS_MEM : OntModelSpec.OWL_MEM);
+    OntModelSpec omodspec = new OntModelSpec(otype.equalsIgnoreCase("RDFS")?OntModelSpec.RDFS_MEM:OntModelSpec.OWL_MEM);
     omodspec.setDocumentManager(odocmgr);
     OntModel omod = ModelFactory.createOntologyModel(omodspec, null);
-    try {
-      //URL url = new URL(url_ont);
-      //InputStream instr = url.openStream();
-      //omod.read(instr, ""); //arg2=base_uri
-
-      omod.read(url_ont, "", null); //arg2=base_uri,arg3=lang, null means default RDF/XML
-    }
+    try { omod.read(url_ont, "", null); } //arg2=base_uri,arg3=lang, null means default RDF/XML
     catch (Exception e) { System.err.println("ERROR: "+e.getMessage()); }
     return omod;
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void DescribeRDF(Model rmod,int verbose)
+  public static void DescribeRDF(Model rmod, int verbose)
   {
     System.err.println("\tmodel size: "+rmod.size());
-
     ResIterator res_itr = rmod.listSubjects(); //subjects (unique list)
     int i_subj=0;
     while (res_itr.hasNext())
@@ -119,7 +110,6 @@ public class jena_utils
       ++i_subj;
     }
     System.err.println("\tsubject count: "+i_subj);
-
     NodeIterator node_itr = rmod.listObjects();
     int i_obj=0;
     while (node_itr.hasNext())
@@ -128,10 +118,8 @@ public class jena_utils
       ++i_obj;
     }
     System.err.println("\tobject count: "+i_obj);
-
     //StmtIterator stmt_itr = rmod.listStatements(Resource s, Property p, RDFNode o); //query
     //StmtIterator stmt_itr = rmod.listStatements(Selector s); //query
-
     StmtIterator stmt_itr = rmod.listStatements();
     int i_stmt=0;
     while (stmt_itr.hasNext())
@@ -149,7 +137,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void DescribeOntology(OntModel omod,int verbose)
+  public static void DescribeOntology(OntModel omod, int verbose)
   {
     System.err.println("model size: "+omod.size());
     System.err.println("imported:");
@@ -169,7 +157,7 @@ public class jena_utils
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void OntModelClassList(OntModel omod,PrintWriter fout_writer,int verbose)
+  public static void OntModelClassList(OntModel omod, PrintWriter fout_writer, int verbose)
   {
     ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
@@ -180,21 +168,21 @@ public class jena_utils
       String uri=cls.getURI();
       String label=cls.getLabel(null);
       String comment=cls.getComment(null);
-      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
-      fout_writer.write(String.format("<%s>\trdfs:label\t\"%s\" .\n",uri,label));
+      label=(label!=null)?label.replaceFirst("[\\s]+$", ""):"";
+      fout_writer.write(String.format("<%s>\trdfs:label\t\"%s\" .\n", uri, label));
       fout_writer.flush();
       if (verbose>1)
       {
-        System.err.println(String.format("<%s>",uri));
-        System.err.println(String.format("\trdfs:label\t\"%s\" ;",label));
-        System.err.println(String.format("\rdfs:tcomment\t\"%s\" .",comment));
+        System.err.println(String.format("<%s>", uri));
+        System.err.println(String.format("\trdfs:label\t\"%s\" ;", label));
+        System.err.println(String.format("\rdfs:tcomment\t\"%s\" .", comment));
       }
     }
     System.err.println("classes: "+i_cls);
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void OntModelRootclassList(OntModel omod,PrintWriter fout_writer,int verbose)
+  public static void OntModelRootclassList(OntModel omod, PrintWriter fout_writer)
   {
     ExtendedIterator<OntClass> cls_itr = omod.listClasses();
     int i_cls=0;
@@ -204,9 +192,9 @@ public class jena_utils
       OntClass cls = cls_itr.next();
       String uri=cls.getURI();
       String label=cls.getLabel(null);
-      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
+      label=(label!=null)?label.replaceFirst("[\\s]+$", ""):"";
       if (cls.isHierarchyRoot())
-        fout_writer.write(String.format("<%s>\trdfs:label\t\"%s\" .\n",uri,label));
+        fout_writer.write(String.format("<%s>\trdfs:label\t\"%s\" .\n", uri, label));
       fout_writer.flush();
     }
     System.err.println("classes: "+i_cls);
@@ -225,8 +213,7 @@ public class jena_utils
       String uri=cls.getURI();
       String label=cls.getLabel(null);
       String comment=cls.getComment(null);
-      label=(label!=null)?label.replaceFirst("[\\s]+$",""):"";
-
+      label=(label!=null)?label.replaceFirst("[\\s]+$", ""):"";
       ExtendedIterator<OntClass> subcls_itr = cls.listSubClasses();
       while (subcls_itr.hasNext())
       {
@@ -235,11 +222,10 @@ public class jena_utils
         String uri_sub=subcls.getURI();
         String label_sub=subcls.getLabel(null);
         String comment_sub=subcls.getComment(null);
-        label_sub=(label_sub!=null)?label_sub.replaceFirst("[\\s]+$",""):"";
-
-        fout_writer.write(String.format("<%s>\trdfs:subClassOf\t<%s> .\n",uri_sub,uri));
+        label_sub=(label_sub!=null)?label_sub.replaceFirst("[\\s]+$", ""):"";
+        fout_writer.write(String.format("<%s>\trdfs:subClassOf\t<%s> .\n", uri_sub, uri));
         if (verbose>1)
-          System.err.println(String.format("%s (label:%s)\trdfs:subClassOf\t%s (label:%s)",uri_sub,label_sub,uri,label));
+          System.err.println(String.format("%s (label:%s)\trdfs:subClassOf\t%s (label:%s)", uri_sub, label_sub, uri, label));
       }
     }
     System.err.println("classes: "+i_cls+", subclasses: "+i_subcls);
@@ -249,13 +235,13 @@ public class jena_utils
   private static String CleanLabel(String label)
   {
     if (label==null) return(null);
-    String label_clean = label.replaceFirst("[\\s]+$","").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\"","&quot;").replaceAll("[\\t\\n\\r]"," ");
+    String label_clean = label.replaceFirst("[\\s]+$", "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;").replaceAll("[\\t\\n\\r]", " ");
     return (label_clean);
   }
   private static String CleanComment(String comment)
   {
     if (comment==null) return(null);
-    String comment_clean = comment.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll("\"","&quot;").replaceAll("[\\t\\n\\r]"," ");
+    String comment_clean = comment.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\"", "&quot;").replaceAll("[\\t\\n\\r]", " ");
     return (comment_clean);
   }
   private static String Uri2Id(String uri)
@@ -267,7 +253,7 @@ public class jena_utils
   /////////////////////////////////////////////////////////////////////////////
   /**	For all classes, identify and output level [0-maxlevel] superclasses (0=root).
   */
-  public static void ListToplevelSuperclassMembership(OntModel omod, PrintWriter fout_writer, int maxlevel, int verbose) throws Exception
+  public static void ListToplevelSuperclassMembership(OntModel omod, PrintWriter fout_writer, int maxlevel) throws Exception
   {
     fout_writer.write("id\tlabel\turi");
     for (int j=0; j<=maxlevel; ++j) fout_writer.write("\tSuperClassUriLev_"+j+"\tSuperClassLabelLev_"+j);
@@ -666,7 +652,7 @@ public class jena_utils
   //Options:
   private static String endpoint_url=null;
   private static String sparql=null;
-  private static String sparqlfile=null;
+  private static String ifile_sparql=null;
   private static String [] ifiles_rdf=null;
   private static String dlang=null;
   private static String ofile=null;
@@ -701,12 +687,12 @@ public class jena_utils
       +"  * Reasoner operations may be slow.\n"
       +"  * Validation can be slow and memory intensive.");
     Options opts = new Options();
-    opts.addOption(Option.builder("ifile_ont").hasArg().argName("IFILE_ONT").desc("Input ontology file (OWL|RDFS)").build());
-    opts.addOption(Option.builder("url_ont").hasArg().argName("URL_ONT").desc("Input ontology URL (OWL|RDFS)").build());
+    opts.addOption(Option.builder("i").longOpt("ifile_ont").hasArg().argName("IFILE_ONT").desc("Input ontology file (OWL|RDFS)").build());
+    opts.addOption(Option.builder("u").longOpt("url_ont").hasArg().argName("URL_ONT").desc("Input ontology URL (OWL|RDFS)").build());
+    opts.addOption(Option.builder("ifile_sparql").hasArg().argName("IFILE_SPARQL").desc("Sparql file").build());
     opts.addOption(Option.builder("sparql").hasArg().argName("SPARQL").desc("Sparql").build());
-    opts.addOption(Option.builder("sparqlfile").hasArg().argName("SPARQLFILE").desc("Sparql file").build());
     opts.addOption(Option.builder("endpoint_url").hasArg().argName("URL").desc("endpoint URL").build());
-    opts.addOption(Option.builder("rdffiles").hasArg().argName("RDFFILES").desc("data file[s], comma-separated list (TTL|N3|RDF/XML)").build());
+    opts.addOption(Option.builder("rdfs").longOpt("ifile_rdf_list").hasArg().argName("ifile_rdf_list").desc("data file[s], comma-separated list (TTL|N3|RDF/XML)").build());
     opts.addOption(Option.builder("o").longOpt("ofile").hasArg().argName("OFILE").desc("Output file").build());
 
     opts.addOption(Option.builder("describe_rdf").desc("requires RDF").build());
@@ -745,7 +731,7 @@ public class jena_utils
     if (clic.hasOption("ifile_ont")) ifile_ont = clic.getOptionValue("ifile_ont");
     else if (clic.hasOption("url_ont")) url_ont = clic.getOptionValue("url_ont");
     else {
-      helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont requied."), true);
+      helper.printHelp(APPNAME, HELPHEADER, opts, ("--ifile_ont or --url_ont requied."), true);
       System.exit(0);
     }
     if (clic.hasOption("o")) ofile = clic.getOptionValue("o");
@@ -753,8 +739,8 @@ public class jena_utils
     if (clic.hasOption("otype")) otype = clic.getOptionValue("otype");
     if (clic.hasOption("endpoint_url")) endpoint_url = clic.getOptionValue("endpoint_url");
     if (clic.hasOption("sparql")) sparql = clic.getOptionValue("sparql");
-    if (clic.hasOption("sparqlfile")) sparqlfile = clic.getOptionValue("sparqlfile");
-    if (clic.hasOption("rdffiles")) ifiles_rdf = Pattern.compile("[\\s,]+").split(clic.getOptionValue("rdffiles"));
+    if (clic.hasOption("ifile_sparql")) ifile_sparql = clic.getOptionValue("ifile_sparql");
+    if (clic.hasOption("ifile_rdf_list")) ifiles_rdf = Pattern.compile("[\\s,]+").split(clic.getOptionValue("ifile_rdf_list"));
     if (clic.hasOption("describe_ontology")) describe_ontology = true;
     if (clic.hasOption("describe_rdf")) describe_rdf=true;
     if (clic.hasOption("list_subclasses")) list_subclasses=true;
@@ -779,26 +765,26 @@ public class jena_utils
       System.exit(0);
     }
 
-    //String jenapropfile = null;
-    //if (Files.isReadable(FileSystems.getDefault().getPath(System.getenv("HOME")+"/../app/apache-jena", "jena-log4j.properties")))
-    //  LogCtl.setLog4j(System.getenv("HOME")+"/../app/apache-jena/jena-log4j.properties");
-    //else if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
-    //  LogCtl.setLog4j("src/main/resources/jena-log4j.properties");
-    //else
-    //  LogCtl.setLog4j();
+//    String jenapropfile = null;
+//    if (Files.isReadable(FileSystems.getDefault().getPath(System.getenv("HOME")+"/../app/apache-jena", "jena-log4j.properties")))
+//      LogCtl.setLog4j(System.getenv("HOME")+"/../app/apache-jena/jena-log4j.properties");
+//    else if (Files.isReadable(FileSystems.getDefault().getPath("src/main/resources", "jena-log4j.properties")))
+//      LogCtl.setLog4j("src/main/resources/jena-log4j.properties");
+//    else
+//      LogCtl.setLog4j();
 
     PrintWriter fout_writer = (ofile!=null)?(new PrintWriter(new BufferedWriter(new FileWriter(new File(ofile),false)))):(new PrintWriter((OutputStream)System.out));
 
     if (verbose>0)
       System.err.println("Jena version: "+Jena.VERSION);
 
-    if (sparqlfile!=null) //read file into rq
+    if (ifile_sparql!=null) //read file into rq
     {
       if (verbose>0)
-        System.err.println("sparqlfile: "+sparqlfile);
-      BufferedReader buff = new BufferedReader(new FileReader(sparqlfile));
+        System.err.println("ifile_sparql: "+ifile_sparql);
+      BufferedReader buff = new BufferedReader(new FileReader(ifile_sparql));
       if (buff==null)
-      helper.printHelp(APPNAME, HELPHEADER, opts, ("Cannot open sparql file: "+sparqlfile), true);
+      helper.printHelp(APPNAME, HELPHEADER, opts, ("Cannot open sparql file: "+ifile_sparql), true);
       String line="";
       sparql="";
       while ((line=buff.readLine())!=null) sparql+=(line+"\n");
@@ -810,9 +796,9 @@ public class jena_utils
     // Input ontology
     OntModel omod = null;
     if (ifile_ont!=null)
-      omod = LoadOntologyFile(ifile_ont, otype, verbose);
+      omod = LoadOntologyFile(ifile_ont, otype);
     else if (url_ont!=null)
-      omod = LoadOntologyUrl(url_ont, otype, verbose);
+      omod = LoadOntologyUrl(url_ont, otype);
 
     // Input dataset (1+ files, models, graphs)
     Model [] rmods = null;
@@ -878,11 +864,11 @@ public class jena_utils
     }
     else if (list_rootclasses) {
       if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
-      OntModelRootclassList(omod, fout_writer, verbose);
+      OntModelRootclassList(omod, fout_writer);
     }
     else if (list_toplevelsuperclassmembership) {
       if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
-      ListToplevelSuperclassMembership(omod, fout_writer, maxlevel, verbose);
+      ListToplevelSuperclassMembership(omod, fout_writer, maxlevel);
     }
     else if (ont2graphml) {
       if (omod==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-ifile_ont or -url_ont required"), true);
@@ -906,12 +892,12 @@ public class jena_utils
     }
     else if (query_rdf) {
       if (dset==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-rdffiles required"), true);
-      if (sparql==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
+      if (sparql==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -ifile_sparql required"), true);
       QueryRDF(dset, sparql, fout_writer, verbose);
     }
     else if (query_endpoint) { // Execute SELECT query using specified endpoint URL.
       if (endpoint_url==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-endpoint_url required"), true);
-      if (sparql==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -sparqlfile required"), true);
+      if (sparql==null) helper.printHelp(APPNAME, HELPHEADER, opts, ("-sparql or -ifile_sparql required"), true);
       QueryEndpoint(endpoint_url, sparql, fout_writer, verbose);
     }
     else {

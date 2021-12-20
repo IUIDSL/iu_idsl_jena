@@ -3,6 +3,9 @@ package edu.indiana.sice.idsl.jena;
 import java.io.*; // BufferedReader, File, FileOutputStream, FileReader, IOException
 import java.util.*; // Properties
 
+import org.apache.commons.cli.*; // CommandLine, CommandLineParser, HelpFormatter, OptionBuilder, Options, ParseException, PosixParser
+import org.apache.commons.cli.Option.*; // Builder
+
 import org.apache.logging.log4j.*; // Logger, LogManager
 import org.apache.logging.log4j.util.*; // PropertyFilePropertySource
 
@@ -51,8 +54,7 @@ public class sparql_query
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  public static void OutputResults(QueryExecution qex, OutputStream ostream, String ofmt, int verbose)
-      throws IOException
+  public static void OutputResults(QueryExecution qex, OutputStream ostream, String ofmt, int verbose) throws IOException
   {
     long t0 = System.nanoTime();
     ResultSet result = qex.execSelect();
@@ -77,19 +79,17 @@ public class sparql_query
     } catch (Exception e) {
       System.err.println(e.toString());
     }
-    System.err.println(String.format("elapsed: %.3fs",(System.nanoTime()-t0)/1e9));
-    
+    System.err.println(String.format("elapsed: %.3fs", (System.nanoTime()-t0)/1e9));
     qex.close();
   }
 
   /////////////////////////////////////////////////////////////////////////////
-  private static String ReadFile(String ifile)
-	throws IOException
+  private static String ReadFile(String ifile) throws IOException
   {
     BufferedReader reader = new BufferedReader(new FileReader(ifile));
-    String         line = null;
-    StringBuilder  sb = new StringBuilder();
-    String         ls = System.getProperty("line.separator");
+    String line = null;
+    StringBuilder sb = new StringBuilder();
+    String ls = System.getProperty("line.separator");
 
     while ((line=reader.readLine())!=null)
       sb.append(line+ls);
@@ -98,6 +98,7 @@ public class sparql_query
   }
 
   /////////////////////////////////////////////////////////////////////////////
+  private static String APPNAME="SPARQL_QUERY";
   private static int verbose=0;
   private static String url=null;
   private static String ifile=null;
@@ -105,68 +106,55 @@ public class sparql_query
   private static String idir=null;
   private static String ofile=null;
   private static String ofmt="TTL";
-  private static void Help(String msg)
-  {
-    System.err.println(msg+"\n"
-      +"sparql_query - query Sparql endpoint\n"
-      +"\n"
-      +"usage: sparql_query [options]\n"
-      +"  required:\n"
-      +"    -url URL .................... endpoint\n"
-      +"   and\n"
-      +"    -rq SPARQL .................. input query\n"
-      +"   and\n"
-      +"    -i IFILE .................... input query .rq file\n"
-      +"   or\n"
-      +"    -idir IDIR .................. input dir, containing query .rq files\n"
-      +"  options:\n"
-      +"    -o OFILE .................... output file\n"
-      +"    -ofmt OFMT .................. output format ["+ofmt+"]\n"
-      +"    -v[v[v]] .................... verbose [very [very]]\n"
-      +"    -h .......................... this help\n"
-      +"\n"
-      +"OFMTS: RDF|TTL|NT|NTRIPLES|JSON|TSV\n"
-      +"\n"
-      +"Jena version: "+Jena.VERSION+" ("+Jena.BUILD_DATE+")\n"
-	);
-    System.exit(1);
-  }
 
   /////////////////////////////////////////////////////////////////////////////
-  private static void ParseCommand(String args[])
+  public static void main(String[] args) throws Exception
   {
-    for (int i=0;i<args.length;++i)
-    {
-      if (args[i].equals("-url")) url=args[++i];
-      else if (args[i].equals("-i")) ifile=args[++i];
-      else if (args[i].equals("-rq")) rq=args[++i];
-      else if (args[i].equals("-idir")) idir=args[++i];
-      else if (args[i].equals("-o")) ofile=args[++i];
-      else if (args[i].equals("-ofmt")) ofmt=args[++i];
-      else if (args[i].equals("-v")) verbose=1;
-      else if (args[i].equals("-vv")) verbose=2;
-      else if (args[i].equals("-vvv"))verbose=3;
-      else if (args[i].equals("-h")) Help("");
-      else Help("Unknown option: "+args[i]);
+    String HELPHEADER =  "SPARQL_APP: Query Sparql endpoint.";
+    String HELPFOOTER = ("Jena version: "+Jena.VERSION+" ("+Jena.BUILD_DATE+")\n"
+      +"OFMTS: RDF|TTL|NT|NTRIPLES|JSON|TSV\n");
+    Options opts = new Options();
+    opts.addOption(Option.builder("url").longOpt("endpoint_url").hasArg().argName("URL").desc("endpoint URL").required(true).build());
+    opts.addOption(Option.builder("i").longOpt("ifile_sparql").hasArg().argName("IFILE_SPARQL").desc("Input Sparql file").build());
+    opts.addOption(Option.builder("rq").longOpt("sparql").hasArg().argName("SPARQL").desc("Sparql").build());
+
+    opts.addOption(Option.builder("o").longOpt("ofile").hasArg().argName("OFILE").desc("Output file").build());
+    opts.addOption(Option.builder("idir").hasArg().argName("IDIR").desc("Input directory").build());
+    opts.addOption(Option.builder("ofmt").hasArg().argName("OFMT").desc("Output format").build());
+    opts.addOption("v", "verbose", false, "Verbose.");
+    opts.addOption("vv", "vverbose", false, "Very verbose.");
+    opts.addOption("vvv", "vvverbose", false, "Very very verbose.");
+    opts.addOption("h", "help", false, "Show this help.");
+    HelpFormatter helper = new HelpFormatter();
+    CommandLineParser clip = new PosixParser();
+    CommandLine clic = null;
+    try {
+      clic = clip.parse(opts, args);
+    } catch (ParseException e) {
+      helper.printHelp(APPNAME, HELPHEADER, opts, e.getMessage(), true);
+      System.exit(0);
     }
-  }
+    if (clic.hasOption("ifile_sparql")) ifile = clic.getOptionValue("ifile_sparql");
+    if (clic.hasOption("sparql")) rq = clic.getOptionValue("sparql");
+    if (clic.hasOption("o")) ofile = clic.getOptionValue("o");
+    if (clic.hasOption("vvv")) verbose = 3;
+    else if (clic.hasOption("vv")) verbose = 2;
+    else if (clic.hasOption("v")) verbose = 1;
+    if (clic.hasOption("h")) {
+      helper.printHelp(APPNAME, HELPHEADER, opts, HELPFOOTER, true);
+      System.exit(0);
+    }
 
-  /////////////////////////////////////////////////////////////////////////////
-  public static void main(String[] args)
-	throws Exception
-  {
     Properties props = new Properties();
     props.load(new FileInputStream(System.getProperty("user.home")+"/.log4j/properties/log4j.properties")); 
 
-    ParseCommand(args);
-    if (url==null) Help("-url required");
-    if (rq==null && ifile==null && idir==null) Help("-rq or -i or -idir required");
+    if (rq==null && ifile==null && idir==null) helper.printHelp(APPNAME, HELPHEADER, opts,"--sparql or --ifile_sparql or -idir required", true);
 
     OutputStream ostream = System.out;
     if (ofile!=null)
     {
       try { ostream = new FileOutputStream(ofile); }
-      catch (Exception e) { Help(e.getMessage()); }
+      catch (Exception e) { helper.printHelp(APPNAME, HELPHEADER, opts, e.getMessage(), true); }
     }
 
     if (idir!=null)
@@ -193,5 +181,4 @@ public class sparql_query
       try { ostream.close(); } catch (Exception e) { System.err.println(e.getMessage()); }
     }
   }
-
 }

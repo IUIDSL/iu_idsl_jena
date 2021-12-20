@@ -30,3 +30,7 @@ java -jar iu_idsl_jena-0.0.1-SNAPSHOT-jar-with-dependencies.jar -ontfile efo.owl
 ```
 java -jar iu_idsl_jena-0.0.1-SNAPSHOT-jar-with-dependencies.jar -ontfile dto_core.owl -list_toplevelsuperclassmembership -o dto_core_toplevelsuperclassmembership.tsv
 ```
+
+```
+java -classpath iu_idsl_jena-0.0.1-SNAPSHOT-jar-with-dependencies.jar edu.indiana.sice.idsl.jena.sparql_query
+```
